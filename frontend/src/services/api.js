@@ -31,4 +31,22 @@ export const post = (url, data, config = {}) => API.post(url, data, config);
 export const put = (url, data, config = {}) => API.put(url, data, config);
 export const del = (url, config = {}) => API.delete(url, config);
 
+// Domain specific helpers (optional convenience)
+export const BookingAPI = {
+  create: (payload) => API.post("/bookings/create", payload),
+  mine: () => API.get("/bookings/mine"),
+  accept: (id) => API.patch(`/bookings/${id}/accept`),
+  reject: (id, reason="") => API.patch(`/bookings/${id}/reject`, { reason }),
+};
+
+export const ServiceAPI = {
+  list: () => API.get("/services"),
+  mine: () => API.get("/services/mine"),
+};
+
+export const UserAPI = {
+  me: () => API.get('/users/me'),
+  updateMe: (payload) => API.patch('/users/me', payload)
+};
+
 export default API;

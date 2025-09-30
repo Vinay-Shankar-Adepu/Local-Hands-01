@@ -91,7 +91,7 @@ export const AuthProvider = ({ children }) => {
 
   const setRole = async (role) => {
     const { data } = await API.post(
-      "/user/set-role",
+      "/auth/set-role",
       { role },
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -124,6 +124,7 @@ export const AuthProvider = ({ children }) => {
       redirectAfterAuth,
       isAuthenticated: !!token,
       isAdmin: user?.role === "admin",
+      saveSession // expose for profile refresh if needed later
     }),
     [user, token, loading]
   );

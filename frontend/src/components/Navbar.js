@@ -74,6 +74,15 @@ export default function Navbar() {
               Provider
             </Button>
           )}
+          {user && (
+            <Button
+              component={Link}
+              to="/profile"
+              color={isActive("/profile") ? "primary" : "inherit"}
+            >
+              Profile
+            </Button>
+          )}
           {user?.role === "admin" && (
             <Button
               component={Link}
@@ -135,6 +144,11 @@ export default function Navbar() {
             {user?.role === "provider" && (
               <MenuItem component={Link} to="/provider" onClick={handleClose}>
                 Provider
+              </MenuItem>
+            )}
+            {user && (
+              <MenuItem component={Link} to="/profile" onClick={handleClose}>
+                Profile
               </MenuItem>
             )}
             {user?.role === "admin" && (

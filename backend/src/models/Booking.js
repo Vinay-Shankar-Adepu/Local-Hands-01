@@ -6,10 +6,11 @@ const bookingSchema = new mongoose.Schema(
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     provider: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // filled after accept
     service: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
+  scheduledAt: { type: Date },
 
     status: {
       type: String,
-      enum: ["requested", "accepted", "completed", "cancelled"],
+      enum: ["requested", "accepted", "rejected", "completed", "cancelled"],
       default: "requested"
     },
 
@@ -23,7 +24,11 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "paid", "failed"],
       default: "pending"
-    }
+    },
+    acceptedAt: { type: Date },
+    completedAt: { type: Date },
+    cancelledAt: { type: Date },
+    rejectionReason: { type: String }
   },
   { timestamps: true }
 );

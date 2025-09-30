@@ -6,7 +6,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleGuard from "./components/RoleGuard";
 
 // Pages
-import HomePage from "./pages/HomePage";
+import HomePage, { CustomerHome, ProviderHome } from "./pages/HomePage";
+import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import RoleSelectPage from "./pages/RoleSelectPage";
@@ -57,8 +58,16 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <RoleGuard allow={["customer"]}>
-                  <CustomerDashboard />
+                  <CustomerHome />
                 </RoleGuard>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />
@@ -69,7 +78,7 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <RoleGuard allow={["provider"]}>
-                  <ProviderDashboard />
+                  <ProviderHome />
                 </RoleGuard>
               </ProtectedRoute>
             }

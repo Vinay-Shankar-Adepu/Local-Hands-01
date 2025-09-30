@@ -28,10 +28,12 @@ export const register = async (req, res) => {
       token,
       user: {
         id: user._id,
-        name,
-        email,
+        name: user.name,
+        email: user.email,
         role: user.role,
         verified: user.verified,
+        phone: user.phone || "",
+        address: user.address || ""
       },
     });
   } catch (e) {
@@ -59,6 +61,8 @@ export const login = async (req, res) => {
         email: user.email,
         role: user.role,
         verified: user.verified,
+        phone: user.phone || "",
+        address: user.address || ""
       },
     });
   } catch (e) {
@@ -104,6 +108,8 @@ export const googleSignIn = async (req, res) => {
         email: user.email,
         role: user.role,
         verified: user.verified,
+        phone: user.phone || "",
+        address: user.address || ""
       },
     });
   } catch (e) {
@@ -143,6 +149,8 @@ export const me = async (req, res) => {
         email: user.email,
         role: user.role,
         verified: user.verified,
+        phone: user.phone || "",
+        address: user.address || ""
       },
     });
   } catch (e) {
