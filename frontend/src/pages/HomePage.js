@@ -186,7 +186,7 @@ export function ProviderHome() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { user } = useAuth();
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState([]); // all provider related bookings
   const [bookingError, setBookingError] = useState("");
   const [customerDetail, setCustomerDetail] = useState(null);
 
@@ -205,8 +205,7 @@ export function ProviderHome() {
   };
   const loadBookings = () => {
     API.get("/bookings/mine").then(r => {
-      const pending = (r.data.bookings || []).filter(b => b.status === 'requested');
-      setBookings(pending);
+      setBookings(r.data.bookings || []);
     }).catch(()=>{});
   };
   useEffect(() => { load(); }, []);
@@ -253,39 +252,93 @@ export function ProviderHome() {
           </div>
         ))}
       </div>
-      <h2 className="text-xl font-bold mt-12 mb-4">Incoming Booking Requests</h2>
-      {bookingError && <p className="text-sm text-red-600 mb-2">{bookingError}</p>}
-      <div className="space-y-3">
-        {bookings.length === 0 && <p className="text-sm text-gray-500">No pending requests.</p>}
-        {bookings.map(b => (
-          <div key={b._id} className="bg-white shadow-card rounded-lg p-4 flex flex-col md:flex-row md:items-center gap-4">
-            <div className="flex-1">
-              <p className="font-semibold text-sm">Booking #{b.bookingId}</p>
-              <p className="text-xs text-gray-500">Service: {b.service?.name || '—'} {b.scheduledAt && (<span className="ml-2">• {new Date(b.scheduledAt).toLocaleString()}</span>)}</p>
-              <p className="text-xs text-gray-500">Customer: {b.customer?.name || 'Hidden'} {b.customer && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const { data } = await API.get(`/users/customer/${b.customer._id}`);
-                      setCustomerDetail(data.user);
-                    } catch(e) { alert('Failed to load customer'); }
-                  }}
-                  className="text-brand-primary underline ml-2"
-                >details</button>
-              )}</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={async () => { try { await API.patch(`/bookings/${b._id}/accept`); loadBookings(); } catch(e){ alert(e?.response?.data?.message || 'Failed'); } }}
-                className="px-3 py-1 rounded bg-green-600 text-white text-sm"
-              >Accept</button>
-              <button
-                onClick={async () => { const reason = prompt('Reason (optional)'); try { await API.patch(`/bookings/${b._id}/reject`, { reason }); loadBookings(); } catch(e){ alert(e?.response?.data?.message || 'Failed'); } }}
-                className="px-3 py-1 rounded bg-red-600 text-white text-sm"
-              >Reject</button>
-            </div>
-          </div>
-        ))}
+      {/* Booking sections */}
+      <div className="mt-12 space-y-10">
+        {(() => {
+          const pending = bookings.filter(b => b.status === 'requested');
+          return (
+            <section>
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">Incoming Requests {pending.length>0 && <span className="text-xs font-medium bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">{pending.length}</span>}</h2>
+              {pending.length === 0 && <p className="text-sm text-gray-500">No pending requests.</p>}
+              <div className="space-y-3">
+                {pending.map(b => (
+                  <div key={b._id} className="bg-white shadow-card rounded-lg p-4 flex flex-col md:flex-row md:items-center gap-4">
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">Booking #{b.bookingId}</p>
+                      <p className="text-xs text-gray-500">Service: {b.service?.name || '—'} {b.scheduledAt && (<span className="ml-2">• {new Date(b.scheduledAt).toLocaleString()}</span>)}</p>
+                      <p className="text-xs text-gray-500">Customer: {b.customer?.name || 'Hidden'} {b.customer && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const { data } = await API.get(`/users/customer/${b.customer._id}`);
+                              setCustomerDetail(data.user);
+                            } catch(e) { alert('Failed to load customer'); }
+                          }}
+                          className="text-brand-primary underline ml-2"
+                        >details</button>
+                      )}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => { try { await API.patch(`/bookings/${b._id}/accept`); loadBookings(); } catch(e){ alert(e?.response?.data?.message || 'Failed'); } }}
+                        className="px-3 py-1 rounded bg-green-600 text-white text-sm"
+                      >Accept</button>
+                      <button
+                        onClick={async () => { const reason = prompt('Reason (optional)'); try { await API.patch(`/bookings/${b._id}/reject`, { reason }); loadBookings(); } catch(e){ alert(e?.response?.data?.message || 'Failed'); } }}
+                        className="px-3 py-1 rounded bg-red-600 text-white text-sm"
+                      >Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {(() => {
+          const accepted = bookings.filter(b => b.status === 'accepted');
+          if (accepted.length === 0) return <section><h2 className="text-xl font-bold mb-4">Accepted / Upcoming</h2><p className="text-sm text-gray-500">None yet.</p></section>;
+          return (
+            <section>
+              <h2 className="text-xl font-bold mb-4">Accepted / Upcoming</h2>
+              <div className="space-y-3">
+                {accepted.map(b => (
+                  <div key={b._id} className="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row md:items-center gap-4">
+                    <div className="flex-1 text-sm">
+                      <p className="font-medium">#{b.bookingId} – {b.service?.name}</p>
+                      <p className="text-xs text-gray-500">Scheduled {b.scheduledAt ? new Date(b.scheduledAt).toLocaleString() : '—'}</p>
+                      <p className="text-xs text-gray-500">Customer: {b.customer?.name}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async ()=>{ if(!window.confirm('Mark completed?')) return; try { await API.patch(`/bookings/${b._id}/complete`); loadBookings(); } catch(e){ alert(e?.response?.data?.message || 'Failed'); } }}
+                        className="px-3 py-1 rounded bg-brand-primary text-white text-sm"
+                      >Complete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {(() => {
+          const completed = bookings.filter(b => b.status === 'completed');
+          if (completed.length === 0) return <section><h2 className="text-xl font-bold mb-4">Completed</h2><p className="text-sm text-gray-500">No completed bookings yet.</p></section>;
+          return (
+            <section>
+              <h2 className="text-xl font-bold mb-4">Completed</h2>
+              <div className="space-y-3">
+                {completed.map(b => (
+                  <div key={b._id} className="bg-white rounded-lg shadow p-4 text-sm">
+                    <p className="font-medium">#{b.bookingId} – {b.service?.name}</p>
+                    <p className="text-xs text-gray-500">Scheduled {b.scheduledAt ? new Date(b.scheduledAt).toLocaleString() : '—'} • Completed {b.completedAt ? new Date(b.completedAt).toLocaleString() : ''}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
       </div>
       {customerDetail && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={()=>setCustomerDetail(null)}>
