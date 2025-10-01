@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { FiUser, FiMail, FiPhone, FiMapPin, FiShield, FiCheck, FiAlertCircle } from 'react-icons/fi';
 
 export default function ProfilePage() {
   const { user, saveSession } = useAuth();

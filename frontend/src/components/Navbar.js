@@ -1,184 +1,177 @@
 import React, { useState } from "react";
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
-import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
-import MenuIcon from "@mui/icons-material/Menu";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { 
+  FiHome, 
+  FiUser, 
+  FiSettings, 
+  FiLogOut, 
+  FiMenu, 
+  FiX,
+  FiBriefcase,
+  FiShoppingBag
+} from "react-icons/fi";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
-
-  const handleMenu = (e) => setAnchorEl(e.currentTarget);
-  const handleClose = () => setAnchorEl(null);
-
-  // Utility: check if route is active
   const isActive = (path) => loc.pathname === path;
 
+  const handleLogout = () => {
+    logout();
+    nav("/");
+    setMobileMenuOpen(false);
+  };
+
+  const navItems = [
+    { name: "Home", path: "/", icon: FiHome, show: true },
+    { name: "Dashboard", path: `/${user?.role}`, icon: user?.role === "provider" ? FiBriefcase : FiShoppingBag, show: !!user?.role },
+    { name: "Profile", path: "/profile", icon: FiUser, show: !!user }
+  ];
+
   return (
-    <AppBar
-      position="sticky"
-      elevation={1}
-      sx={{ bgcolor: "white", color: "text.primary" }}
-    >
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-        {/* Brand */}
-        <Typography
-          variant="h6"
-          component={Link}
-          to="/"
-          sx={{
-            textDecoration: "none",
-            color: "primary.main",
-            fontWeight: 700,
-          }}
-        >
-          LocalHands
-        </Typography>
-
-        {/* Desktop Nav */}
-        <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2 }}>
-          <Button
-            component={Link}
-            to="/"
-            color={isActive("/") ? "primary" : "inherit"}
+    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-brand-gray-200 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link 
+            to="/" 
+            className="flex items-center space-x-2 text-2xl font-bold text-brand-primary hover:text-blue-600 transition-colors duration-200"
           >
-            Home
-          </Button>
+            <div className="w-8 h-8 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-lg flex items-center justify-center">
+              <span className="text-white text-sm font-bold">LH</span>
+            </div>
+            <span className="hidden sm:block">LocalHands</span>
+          </Link>
 
-          {user?.role === "customer" && (
-            <Button
-              component={Link}
-              to="/customer"
-              color={isActive("/customer") ? "primary" : "inherit"}
-            >
-              Customer
-            </Button>
-          )}
-          {user?.role === "provider" && (
-            <Button
-              component={Link}
-              to="/provider"
-              color={isActive("/provider") ? "primary" : "inherit"}
-            >
-              Provider
-            </Button>
-          )}
-          {user && (
-            <Button
-              component={Link}
-              to="/profile"
-              color={isActive("/profile") ? "primary" : "inherit"}
-            >
-              Profile
-            </Button>
-          )}
-          {user?.role === "admin" && (
-            <Button
-              component={Link}
-              to="/admin"
-              color={isActive("/admin") ? "primary" : "inherit"}
-            >
-              Admin
-            </Button>
-          )}
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => (
+              item.show && (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isActive(item.path)
+                      ? "bg-brand-primary text-white shadow-glow"
+                      : "text-brand-gray-600 hover:text-brand-primary hover:bg-brand-gray-50"
+                  }`}
+                >
+                  <item.icon className="w-4 h-4 mr-2" />
+                  {item.name}
+                </Link>
+              )
+            ))}
+          </div>
 
-          {!user ? (
-            <>
-              <Button variant="outlined" onClick={() => nav("/login")}>
-                Login
-              </Button>
-              <Button
-                variant="contained"
-                disableElevation
-                onClick={() => nav("/register")}
-              >
-                Sign Up
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="contained"
-              color="error"
-              disableElevation
-              onClick={() => {
-                logout();
-                nav("/");
-              }}
-            >
-              Logout
-            </Button>
-          )}
-        </Box>
-
-        {/* Mobile Nav */}
-        <Box sx={{ display: { xs: "flex", md: "none" } }}>
-          <IconButton onClick={handleMenu} color="inherit">
-            <MenuIcon />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={open}
-            onClose={handleClose}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-          >
-            <MenuItem component={Link} to="/" onClick={handleClose}>
-              Home
-            </MenuItem>
-            {user?.role === "customer" && (
-              <MenuItem component={Link} to="/customer" onClick={handleClose}>
-                Customer
-              </MenuItem>
-            )}
-            {user?.role === "provider" && (
-              <MenuItem component={Link} to="/provider" onClick={handleClose}>
-                Provider
-              </MenuItem>
-            )}
-            {user && (
-              <MenuItem component={Link} to="/profile" onClick={handleClose}>
-                Profile
-              </MenuItem>
-            )}
-            {user?.role === "admin" && (
-              <MenuItem component={Link} to="/admin" onClick={handleClose}>
-                Admin
-              </MenuItem>
-            )}
+          {/* Desktop Auth Actions */}
+          <div className="hidden md:flex items-center space-x-3">
             {!user ? (
               <>
-                <MenuItem onClick={() => { handleClose(); nav("/login"); }}>
-                  Login
-                </MenuItem>
-                <MenuItem onClick={() => { handleClose(); nav("/register"); }}>
-                  Sign Up
-                </MenuItem>
+                <button
+                  onClick={() => nav("/login")}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-brand-gray-700 hover:text-brand-primary transition-colors duration-200"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => nav("/register")}
+                  className="inline-flex items-center px-6 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-all duration-200 shadow-card hover:shadow-cardHover transform hover:-translate-y-0.5"
+                >
+                  Get Started
+                </button>
               </>
             ) : (
-              <MenuItem
-                onClick={() => {
-                  handleClose();
-                  logout();
-                  nav("/");
-                }}
-              >
-                Logout
-              </MenuItem>
+              <div className="flex items-center space-x-3">
+                <div className="text-sm">
+                  <div className="font-medium text-brand-gray-900">{user.name}</div>
+                  <div className="text-brand-gray-500 capitalize">{user.role}</div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-error hover:bg-error/10 rounded-lg transition-all duration-200"
+                >
+                  <FiLogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </button>
+              </div>
             )}
-          </Menu>
-        </Box>
-      </Toolbar>
-    </AppBar>
+          </div>
+
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-lg text-brand-gray-600 hover:text-brand-primary hover:bg-brand-gray-50 transition-colors duration-200"
+            >
+              {mobileMenuOpen ? (
+                <FiX className="block h-6 w-6" />
+              ) : (
+                <FiMenu className="block h-6 w-6" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden animate-slide-up">
+          <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-brand-gray-200 shadow-card">
+            {navItems.map((item) => (
+              item.show && (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-all duration-200 ${
+                    isActive(item.path)
+                      ? "bg-brand-primary text-white"
+                      : "text-brand-gray-600 hover:text-brand-primary hover:bg-brand-gray-50"
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.name}
+                </Link>
+              )
+            ))}
+            
+            {!user ? (
+              <div className="pt-4 space-y-2">
+                <button
+                  onClick={() => { nav("/login"); setMobileMenuOpen(false); }}
+                  className="w-full flex items-center px-3 py-3 text-base font-medium text-brand-gray-600 hover:text-brand-primary hover:bg-brand-gray-50 rounded-lg transition-colors duration-200"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => { nav("/register"); setMobileMenuOpen(false); }}
+                  className="w-full flex items-center justify-center px-3 py-3 bg-brand-primary text-white text-base font-medium rounded-lg hover:bg-blue-600 transition-all duration-200"
+                >
+                  Get Started
+                </button>
+              </div>
+            ) : (
+              <div className="pt-4 border-t border-brand-gray-200">
+                <div className="px-3 py-2">
+                  <div className="text-base font-medium text-brand-gray-900">{user.name}</div>
+                  <div className="text-sm text-brand-gray-500 capitalize">{user.role}</div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center px-3 py-3 text-base font-medium text-error hover:bg-error/10 rounded-lg transition-all duration-200"
+                >
+                  <FiLogOut className="w-5 h-5 mr-3" />
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </nav>
   );
 }

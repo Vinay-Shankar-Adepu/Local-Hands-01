@@ -83,6 +83,21 @@ export const rejectBooking = async (req, res) => {
   }
 };
 
+// Provider marks booking completed
+export const completeBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const booking = await Booking.findById(id);
+    if (!booking) return res.status(404).json({ message: "Not found" });
+    if (booking.status !== "accepted") return res.status(400).json({ message: "Only accepted bookings can be completed" });
+    if (!booking.provider || booking.provider.toString() !== req.userId) return res.status(403).json({ message: "Not your booking" });
+    booking.status = "completed";
+    booking.completedAt = new Date();
+    await booking.save();
+    res.json({ booking });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
 // List bookings for current user (role-aware)
 export const myBookings = async (req, res) => {
   try {
