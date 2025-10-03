@@ -27,8 +27,9 @@ export const AuthProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${cachedToken}` },
       })
         .then((res) => {
-          setUser(res.data.user);
-          localStorage.setItem("lh_user", JSON.stringify(res.data.user));
+          const u = res.data.user;
+          setUser(u);
+          localStorage.setItem("lh_user", JSON.stringify(u));
         })
         .catch((err) => {
           console.warn("Session validation failed:", err.message);
@@ -104,6 +105,15 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => clearSession();
 
+  // Availability toggle (provider only)
+  const setAvailability = async (isAvailable) => {
+    const { data } = await API.patch('/providers/availability', { isAvailable });
+    // server returns { user }
+    const merged = { ...user, ...data.user };
+    saveSession(token, merged);
+    return merged;
+  };
+
   // 🔹 Centralized redirect helper
   const redirectAfterAuth = (u, nav) => {
     if (!u?.role) nav("/choose-role", { replace: true });
@@ -121,6 +131,7 @@ export const AuthProvider = ({ children }) => {
       loginWithGoogleIdToken,
       setRole,
       logout,
+      setAvailability,
       redirectAfterAuth,
       isAuthenticated: !!token,
       isAdmin: user?.role === "admin",

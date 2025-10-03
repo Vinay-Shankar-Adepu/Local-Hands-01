@@ -33,7 +33,10 @@ export const register = async (req, res) => {
         role: user.role,
         verified: user.verified,
         phone: user.phone || "",
-        address: user.address || ""
+        address: user.address || "",
+        isAvailable: user.isAvailable || false,
+        rating: user.rating || 0,
+        completedJobs: user.completedJobs || 0
       },
     });
   } catch (e) {
@@ -62,7 +65,10 @@ export const login = async (req, res) => {
         role: user.role,
         verified: user.verified,
         phone: user.phone || "",
-        address: user.address || ""
+        address: user.address || "",
+        isAvailable: user.isAvailable || false,
+        rating: user.rating || 0,
+        completedJobs: user.completedJobs || 0
       },
     });
   } catch (e) {
@@ -109,7 +115,10 @@ export const googleSignIn = async (req, res) => {
         role: user.role,
         verified: user.verified,
         phone: user.phone || "",
-        address: user.address || ""
+        address: user.address || "",
+        isAvailable: user.isAvailable || false,
+        rating: user.rating || 0,
+        completedJobs: user.completedJobs || 0
       },
     });
   } catch (e) {
@@ -133,7 +142,7 @@ export const setRole = async (req, res) => {
 
     const token = signToken(user);
     const needsServiceSelection = role === 'provider';
-    res.json({ token, user: { ...user.toObject(), needsServiceSelection } });
+  res.json({ token, user: { ...user.toObject(), needsServiceSelection, isAvailable: user.isAvailable || false, rating: user.rating || 0, completedJobs: user.completedJobs || 0 } });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
@@ -151,7 +160,10 @@ export const me = async (req, res) => {
         role: user.role,
         verified: user.verified,
         phone: user.phone || "",
-        address: user.address || ""
+        address: user.address || "",
+        isAvailable: user.isAvailable || false,
+        rating: user.rating || 0,
+        completedJobs: user.completedJobs || 0
       },
     });
   } catch (e) {

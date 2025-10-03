@@ -20,7 +20,8 @@ const userSchema = new mongoose.Schema(
     otpVerified: { type: Boolean, default: false },
     onboardingStatus: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
     rating: { type: Number, default: 0 },
-  ratingCount: { type: Number, default: 0 },
+    ratingCount: { type: Number, default: 0 },
+    completedJobs: { type: Number, default: 0 },
   // Customer specific
   address: { type: String }
   },
@@ -30,6 +31,7 @@ const userSchema = new mongoose.Schema(
 // helpful indexes (avoid duplicates with unique fields)
 userSchema.index({ location: "2dsphere" });
 userSchema.index({ rating: -1 });
+userSchema.index({ completedJobs: -1 });
 
 const User = mongoose.model("User", userSchema);
 export default User;

@@ -56,6 +56,8 @@ router.post('/select-services', requireAuth, requireRole('provider'), async (req
 
 // provider secured routes
 router.patch("/availability", requireAuth, requireRole("provider"), setAvailability);
+router.patch('/go-live', requireAuth, requireRole('provider'), (req,res)=>{ req.body.isAvailable = true; return setAvailability(req,res); });
+router.patch('/go-offline', requireAuth, requireRole('provider'), (req,res)=>{ req.body.isAvailable = false; return setAvailability(req,res); });
 router.patch("/location", requireAuth, requireRole("provider"), updateLocation);
 router.post("/onboarding", requireAuth, requireRole("provider"), submitOnboarding);
 

@@ -120,7 +120,13 @@ export default function CustomerHome() {
     if (aggregate.services.length === 1) {
       setBookingModal({ open: true, service: aggregate.services[0] });
     } else {
-      setProviderSelect({ open: true, aggregate });
+      // Multi-provider flow: directly create multi booking using template if available
+      if(aggregate.template){
+        // open a lightweight modal just asking for schedule, or reuse existing booking modal with neutral service
+        setBookingModal({ open: true, service: { ...aggregate.services[0], _aggregateTemplate: aggregate.template, _multi: true } });
+      } else {
+        setProviderSelect({ open: true, aggregate });
+      }
     }
   };
 
@@ -144,14 +150,14 @@ export default function CustomerHome() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-gray-50">
+    <div className="min-h-screen bg-brand-gray-50 dark:bg-gray-900 text-brand-gray-900 dark:text-gray-100 transition-colors">
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-brand-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-brand-gray-900 dark:text-white mb-2">
             Customer Dashboard
           </h1>
-          <p className="text-brand-gray-600">
+          <p className="text-brand-gray-600 dark:text-gray-300">
             Book services and manage your appointments
           </p>
         </div>
@@ -159,10 +165,10 @@ export default function CustomerHome() {
         {/* Browse Services Section */}
         <section className="mb-12" data-services-section>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-brand-gray-900">
+            <h2 className="text-2xl font-semibold text-brand-gray-900 dark:text-white">
               Browse Nearby Services
             </h2>
-            <div className="text-sm text-brand-gray-500 hidden md:block">
+            <div className="text-sm text-brand-gray-500 dark:text-gray-400 hidden md:block">
               {services.length} services available
             </div>
           </div>
@@ -178,7 +184,7 @@ export default function CustomerHome() {
                     <button
                       key={cat}
                       onClick={() => setActiveCategory(cat)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${activeCategory === cat ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white text-brand-gray-700 border-brand-gray-200 hover:bg-brand-gray-50'}`}
+                      className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${activeCategory === cat ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-gray-800 text-brand-gray-700 dark:text-gray-300 border-brand-gray-200 dark:border-gray-700 hover:bg-brand-gray-50 dark:hover:bg-gray-700'}`}
                     >
                       {cat === 'all' ? 'All' : cat}
                     </button>
@@ -191,9 +197,9 @@ export default function CustomerHome() {
                   value={searchTerm}
                   onChange={(e)=>setSearchTerm(e.target.value)}
                   placeholder="Search services..."
-                  className="w-full md:w-80 px-4 py-2.5 rounded-xl border border-brand-gray-300 focus:ring-2 focus:ring-brand-primary focus:border-transparent text-sm"
+                  className="w-full md:w-80 px-4 py-2.5 rounded-xl border border-brand-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-primary focus:border-transparent text-sm bg-white dark:bg-gray-800 text-brand-gray-900 dark:text-gray-100 placeholder-brand-gray-400 dark:placeholder-gray-500"
                 />
-                <div className="text-xs text-brand-gray-500">Showing {filteredAggregated.length} result(s)</div>
+                <div className="text-xs text-brand-gray-500 dark:text-gray-400">Showing {filteredAggregated.length} result(s)</div>
               </div>
             </div>
           )}
@@ -203,14 +209,14 @@ export default function CustomerHome() {
               {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
-                  className="animate-pulse bg-white rounded-xl2 h-64"
+                  className="animate-pulse bg-white dark:bg-gray-800 rounded-xl2 h-64"
                 ></div>
               ))}
             </div>
           )}
 
           {error && (
-            <div className="text-center py-12 bg-white rounded-xl2 border border-brand-gray-200">
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl2 border border-brand-gray-200 dark:border-gray-700">
               <FiAlertCircle className="w-12 h-12 text-error mx-auto mb-4" />
               <p className="text-error font-medium mb-2">{error}</p>
               <button
@@ -225,7 +231,7 @@ export default function CustomerHome() {
           {!loading && !error && (
             (() => {
               if(filteredAggregated.length === 0) {
-                return <div className="text-center py-12 bg-white rounded-xl2 border border-brand-gray-200 text-sm text-brand-gray-600">No services match your filters.</div>;
+                return <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl2 border border-brand-gray-200 dark:border-gray-700 text-sm text-brand-gray-600 dark:text-gray-400">No services match your filters.</div>;
               }
               const categories = activeCategory === 'all' ? Array.from(new Set(filteredAggregated.map(s=>s.category))) : [activeCategory];
               return (
@@ -235,8 +241,8 @@ export default function CustomerHome() {
                     return (
                       <div key={cat} id={cat.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}>
                         <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-brand-gray-900">{cat}</h3>
-                          <span className="text-xs text-brand-gray-500">{catAggs.length} service{catAggs.length!==1 && 's'}</span>
+                          <h3 className="text-lg font-semibold text-brand-gray-900 dark:text-white">{cat}</h3>
+                          <span className="text-xs text-brand-gray-500 dark:text-gray-400">{catAggs.length} service{catAggs.length!==1 && 's'}</span>
                         </div>
                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                           {catAggs.map(a => {
@@ -267,11 +273,11 @@ export default function CustomerHome() {
         {/* Provider Selection Modal */}
         {providerSelect.open && providerSelect.aggregate && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl">
+            <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">Choose Provider – {providerSelect.aggregate.name}</h3>
-                  <button onClick={()=>setProviderSelect({ open:false, aggregate:null })} className="p-2 hover:bg-brand-gray-100 rounded-lg"><FiX className="w-5 h-5" /></button>
+                  <button onClick={()=>setProviderSelect({ open:false, aggregate:null })} className="p-2 hover:bg-brand-gray-100 dark:hover:bg-gray-700 rounded-lg"><FiX className="w-5 h-5" /></button>
                 </div>
                 <div className="space-y-3 max-h-80 overflow-auto pr-2">
                   {providerSelect.aggregate.services
@@ -283,13 +289,13 @@ export default function CustomerHome() {
                       return (b.rating||0) - (a.rating||0);
                     })
                     .map(srv => (
-                      <div key={srv._id} className="p-3 border rounded-lg flex items-center justify-between gap-3 text-sm">
+                      <div key={srv._id} className="p-3 border rounded-lg flex items-center justify-between gap-3 text-sm bg-white dark:bg-gray-700/60 border-brand-gray-200 dark:border-gray-600">
                         <div className="flex-1">
-                          <div className="font-medium text-brand-gray-900 flex items-center gap-2">
+                          <div className="font-medium text-brand-gray-900 dark:text-gray-100 flex items-center gap-2">
                             {srv.provider?.name || 'Provider'}
                             {srv.provider?.rating>0 && <span className="inline-flex items-center text-xs bg-yellow-500/10 text-yellow-700 px-1.5 py-0.5 rounded"><FiStar className="w-3 h-3 mr-0.5" />{srv.provider.rating.toFixed(1)}</span>}
                           </div>
-                          <div className="text-xs text-brand-gray-500 flex items-center gap-2 flex-wrap">
+                          <div className="text-xs text-brand-gray-500 dark:text-gray-400 flex items-center gap-2 flex-wrap">
                             <span>₹{srv.price}</span>
                             {srv.distance && <span className="flex items-center"><FiMapPin className="w-3 h-3 mr-1" />{srv.distance.toFixed(1)} km</span>}
                           </div>
@@ -309,7 +315,7 @@ export default function CustomerHome() {
         {/* Booking Modal */}
         {bookingModal.open && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl animate-scale-in">
+            <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl animate-scale-in border border-transparent dark:border-gray-700 transition-colors">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold text-brand-gray-900">
@@ -317,17 +323,17 @@ export default function CustomerHome() {
                   </h3>
                   <button
                     onClick={() => setBookingModal({ open: false, service: null })}
-                    className="p-2 hover:bg-brand-gray-100 rounded-lg transition-colors duration-200"
+                    className="p-2 hover:bg-brand-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
                   >
                     <FiX className="w-5 h-5 text-brand-gray-500" />
                   </button>
                 </div>
 
-                <div className="mb-6 p-4 bg-brand-gray-50 rounded-xl">
-                  <h4 className="font-medium text-brand-gray-900">
+                <div className="mb-6 p-4 bg-brand-gray-50 dark:bg-gray-700/40 rounded-xl">
+                  <h4 className="font-medium text-brand-gray-900 dark:text-gray-100">
                     {bookingModal.service?.name}
                   </h4>
-                  <p className="text-sm text-brand-gray-600 capitalize">
+                  <p className="text-sm text-brand-gray-600 dark:text-gray-400 capitalize">
                     {bookingModal.service?.category}
                   </p>
                   <p className="text-lg font-bold text-brand-primary mt-2">
@@ -353,13 +359,23 @@ export default function CustomerHome() {
                     setBookingLoading(true);
                     setBookingMsg("");
                     try {
-                      await API.post("/bookings/create", {
-                        serviceId: bookingModal.service._id,
-                        lng: location.lng,
-                        lat: location.lat,
-                        scheduledAt,
-                      });
-                      setBookingMsg("Booking requested successfully!");
+                      if(bookingModal.service?._multi && bookingModal.service?._aggregateTemplate){
+                        await API.post('/bookings/create-multi', {
+                          templateId: bookingModal.service._aggregateTemplate,
+                          lng: location.lng,
+                          lat: location.lat,
+                          scheduledAt,
+                        });
+                        setBookingMsg('Request sent. The best available provider will be assigned shortly.');
+                      } else {
+                        await API.post("/bookings/create", {
+                          serviceId: bookingModal.service._id,
+                          lng: location.lng,
+                          lat: location.lat,
+                          scheduledAt,
+                        });
+                        setBookingMsg("Booking requested successfully!");
+                      }
                       loadBookings();
                       setTimeout(
                         () => setBookingModal({ open: false, service: null }),
@@ -376,14 +392,14 @@ export default function CustomerHome() {
                   className="space-y-4"
                 >
                   <div>
-                    <label className="block text-sm font-medium text-brand-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-brand-gray-700 dark:text-gray-300 mb-2">
                       Preferred Date & Time
                     </label>
                     <input
                       type="datetime-local"
                       value={scheduledAt}
                       onChange={(e) => setScheduledAt(e.target.value)}
-                      className="w-full px-4 py-3 border border-brand-gray-300 rounded-xl focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-brand-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-brand-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                       required
                     />
                   </div>
@@ -392,7 +408,7 @@ export default function CustomerHome() {
                     <button
                       type="button"
                       onClick={() => setBookingModal({ open: false, service: null })}
-                      className="flex-1 px-4 py-3 border border-brand-gray-300 text-brand-gray-700 font-medium rounded-xl hover:bg-brand-gray-50"
+                      className="flex-1 px-4 py-3 border border-brand-gray-300 dark:border-gray-600 text-brand-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-brand-gray-50 dark:hover:bg-gray-700"
                     >
                       Cancel
                     </button>
@@ -412,11 +428,11 @@ export default function CustomerHome() {
         {/* My Bookings Section */}
         <section>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-brand-gray-900">
+            <h2 className="text-2xl font-semibold text-brand-gray-900 dark:text-white">
               My Bookings
             </h2>
             {myBookings.length > 0 && (
-              <div className="text-sm text-brand-gray-500">
+              <div className="text-sm text-brand-gray-500 dark:text-gray-400">
                 {myBookings.length} booking
                 {myBookings.length !== 1 ? "s" : ""}
               </div>
@@ -424,7 +440,7 @@ export default function CustomerHome() {
           </div>
 
           {myBookings.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl2 border border-brand-gray-200">
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl2 border border-brand-gray-200 dark:border-gray-700">
               <FiCalendar className="w-12 h-12 text-brand-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-brand-gray-900 mb-2">
                 No bookings yet
@@ -447,14 +463,11 @@ export default function CustomerHome() {
           ) : (
             <div className="space-y-4">
               {myBookings.map((b) => (
-                <div
-                  key={b._id}
-                  className="bg-white rounded-xl border border-brand-gray-200 shadow-card p-6"
-                >
+                <div key={b._id} className="bg-white dark:bg-gray-800 rounded-xl border border-brand-gray-200 dark:border-gray-700 shadow-card dark:shadow-none p-6 transition-colors">
                   <div className="flex flex-col md:flex-row md:items-center gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-brand-gray-900">
+                        <h3 className="font-semibold text-brand-gray-900 dark:text-gray-100">
                           #{b.bookingId}
                         </h3>
                         <span
@@ -475,19 +488,22 @@ export default function CustomerHome() {
                         </span>
                       </div>
 
-                      <p className="text-brand-gray-700 font-medium mb-1">
-                        {b.service?.name || "Service"}
+                      <p className="text-brand-gray-700 dark:text-gray-300 font-medium mb-1">
+                        {b.service?.name || b.serviceTemplate?.name || "Service"}
                       </p>
 
                       {b.scheduledAt && (
-                        <div className="flex items-center text-sm text-brand-gray-500 mb-1">
+                        <div className="flex items-center text-sm text-brand-gray-500 dark:text-gray-400 mb-1">
                           <FiCalendar className="w-4 h-4 mr-1" />
                           <span>{new Date(b.scheduledAt).toLocaleString()}</span>
                         </div>
                       )}
 
+                      {(!b.provider && b.status==='requested') && (
+                        <div className="text-xs text-brand-gray-500 mb-1">Assigning best provider...</div>
+                      )}
                       {b.provider && (
-                        <div className="flex items-center text-sm text-brand-gray-500 gap-2 flex-wrap">
+                        <div className="flex items-center text-sm text-brand-gray-500 dark:text-gray-400 gap-2 flex-wrap">
                           <span className='flex items-center'>
                             <FiUser className="w-4 h-4 mr-1" /> {b.provider.name}
                           </span>
@@ -498,7 +514,7 @@ export default function CustomerHome() {
                           )}
                           <button
                             onClick={async ()=>{ setLoadingProfile(true); try { const { data } = await API.get(`/providers/${b.provider._id}/profile`); setProviderProfile(data); } catch { alert('Failed to load provider profile'); } finally { setLoadingProfile(false); } }}
-                            className='text-brand-primary text-xs underline'>View Profile</button>
+                            className='text-brand-primary hover:text-blue-600 text-xs underline'>View Profile</button>
                         </div>
                       )}
                     </div>
@@ -509,15 +525,10 @@ export default function CustomerHome() {
                       </p>
                       <p className="text-xs text-brand-gray-500">Service fee</p>
                       {['requested','accepted'].includes(b.status) && (
-                        <button
-                          onClick={async ()=>{ if(!window.confirm('Cancel this booking?')) return; try { await API.patch(`/bookings/${b._id}/cancel`); loadBookings(); } catch(e){ alert(e?.response?.data?.message || 'Failed to cancel'); } }}
-                          className='mt-1 inline-flex items-center px-3 py-1.5 text-xs font-medium border border-error text-error rounded-lg hover:bg-error/10'>Cancel</button>
+                        <button onClick={async ()=>{ if(!window.confirm('Cancel this booking?')) return; try { await API.patch(`/bookings/${b._id}/cancel`); loadBookings(); } catch(e){ alert(e?.response?.data?.message || 'Failed to cancel'); } }} className='mt-1 inline-flex items-center px-3 py-1.5 text-xs font-medium border border-error text-error rounded-lg hover:bg-error/10'>Cancel</button>
                       )}
                       {b.status === 'completed' && !b.customerRating && b.provider && (
-                        <button
-                          onClick={() => setRateTarget(b)}
-                          className='mt-2 inline-flex items-center px-3 py-1.5 text-xs font-medium bg-brand-primary text-white rounded-lg hover:bg-blue-600'
-                        >Rate Provider</button>
+                        <button onClick={() => setRateTarget(b)} className='mt-2 inline-flex items-center px-3 py-1.5 text-xs font-medium bg-brand-primary text-white rounded-lg hover:bg-blue-600'>Rate Provider</button>
                       )}
                       {b.customerRating && (
                         <div className='text-xs text-brand-gray-400'>Completed</div>
@@ -531,7 +542,7 @@ export default function CustomerHome() {
         </section>
         {providerProfile && (
           <div className='fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4' onClick={()=>setProviderProfile(null)}>
-            <div className='bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl' onClick={e=>e.stopPropagation()}>
+            <div className='bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg p-6 shadow-xl border border-transparent dark:border-gray-700 transition-colors' onClick={e=>e.stopPropagation()}>
               <div className='flex items-center justify-between mb-4'>
                 <h3 className='text-xl font-semibold'>{providerProfile.provider.name}</h3>
                 <button onClick={()=>setProviderProfile(null)} className='text-sm text-brand-gray-500 hover:text-brand-gray-800'>Close</button>

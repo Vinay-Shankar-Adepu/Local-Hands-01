@@ -165,7 +165,19 @@ export default function ProviderHome() {
             <p className="text-gray-600">No bookings yet</p>
           ) : (
             <div className="space-y-4">
-              {bookings.map((b) => (
+              {bookings
+                // Active list: only show requested or accepted bookings that are still actionable for THIS provider.
+                // Exclude:
+                //  - any booking where this provider already declined its offer (providerOfferStatus === 'declined')
+                //  - any booking with status rejected/cancelled/completed
+                .filter(b => (
+                  (b.status === 'requested' || b.status === 'accepted') &&
+                  b.providerOfferStatus !== 'declined' &&
+                  b.status !== 'rejected' &&
+                  b.status !== 'cancelled' &&
+                  b.status !== 'completed'
+                ))
+                .map((b) => (
                 <div
                   key={b._id}
                   className="bg-white p-6 rounded-xl shadow flex flex-col md:flex-row md:items-center justify-between gap-4"
@@ -216,8 +228,15 @@ export default function ProviderHome() {
                       <>
                         <button
                           onClick={async () => {
-                            await API.patch(`/bookings/${b._id}/accept`);
-                            loadBookings();
+                            try {
+                              // Use offer endpoint if offers exist (multi-provider flow)
+                              if (Array.isArray(b.offers) && b.offers.length > 0) {
+                                await API.patch(`/bookings/${b._id}/offer/accept`);
+                              } else {
+                                await API.patch(`/bookings/${b._id}/accept`);
+                              }
+                              loadBookings();
+                            } catch(e){ alert(e?.response?.data?.message || 'Accept failed'); }
                           }}
                           className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
                         >
@@ -225,8 +244,14 @@ export default function ProviderHome() {
                         </button>
                         <button
                           onClick={async () => {
-                            await API.patch(`/bookings/${b._id}/reject`);
-                            loadBookings();
+                            try {
+                              if (Array.isArray(b.offers) && b.offers.length > 0) {
+                                await API.patch(`/bookings/${b._id}/offer/decline`);
+                              } else {
+                                await API.patch(`/bookings/${b._id}/reject`);
+                              }
+                              loadBookings();
+                            } catch(e){ alert(e?.response?.data?.message || 'Reject failed'); }
                           }}
                           className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50"
                         >
@@ -259,9 +284,9 @@ export default function ProviderHome() {
                         </button>
                       )
                     )}
-                    {b.status === "rejected" && (
+                    {(b.status === "rejected" || (b.status === 'requested' && b.providerOfferStatus === 'declined')) && (
                       <span className="px-4 py-2 text-sm bg-red-100 text-red-600 rounded-lg flex items-center">
-                        <FiX className="mr-1" /> Rejected
+                        <FiX className="mr-1" /> {b.status === 'rejected' ? 'Rejected' : 'Declined Offer'}
                       </span>
                     )}
                   </div>

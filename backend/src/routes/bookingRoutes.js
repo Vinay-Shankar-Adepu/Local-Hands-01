@@ -1,10 +1,15 @@
 import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
-import { createBooking, acceptBooking, rejectBooking, completeBooking, myBookings, cancelBooking } from "../controllers/bookingController.js";
+import { createBooking, createBookingMulti, acceptBooking, rejectBooking, completeBooking, myBookings, cancelBooking, acceptOffer, declineOffer, myOffers, forceAdvanceOffer } from "../controllers/bookingController.js";
 
 const router = Router();
 
 router.post("/create", requireAuth, requireRole("customer"), createBooking);
+router.post("/create-multi", requireAuth, requireRole("customer"), createBookingMulti);
+router.get('/offers/mine', requireAuth, requireRole('provider'), myOffers);
+router.patch('/:id/offer/accept', requireAuth, requireRole('provider'), acceptOffer);
+router.patch('/:id/offer/decline', requireAuth, requireRole('provider'), declineOffer);
+router.patch('/:id/offer/force-advance', requireAuth, requireRole('admin'), forceAdvanceOffer);
 router.patch("/:id/accept", requireAuth, requireRole("provider"), acceptBooking);
 router.patch("/:id/reject", requireAuth, requireRole("provider"), rejectBooking);
 router.patch("/:id/complete", requireAuth, requireRole("provider"), completeBooking);

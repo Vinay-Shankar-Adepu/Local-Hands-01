@@ -49,4 +49,12 @@ export const UserAPI = {
   updateMe: (payload) => API.patch('/users/me', payload)
 };
 
+// Provider specific helpers
+export const ProviderAPI = {
+  availability: (isAvailable) => API.patch('/providers/availability', { isAvailable }),
+  goLive: () => API.patch('/providers/go-live', {}),
+  goOffline: () => API.patch('/providers/go-offline', {}),
+  updateLocation: (lng, lat) => API.patch('/providers/location', { lng, lat })
+};
+
 export default API;

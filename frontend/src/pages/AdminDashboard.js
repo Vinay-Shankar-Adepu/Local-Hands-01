@@ -50,11 +50,11 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
+    <div className="max-w-7xl mx-auto px-6 py-10 space-y-10 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
       <div>
         <h1 className="text-2xl font-bold">Admin Overview</h1>
         <section className="mt-6 grid lg:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl shadow-card lg:col-span-2">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-card dark:shadow-none border border-transparent dark:border-gray-700 lg:col-span-2 transition-colors">
             <h2 className="font-semibold">Weekly bookings</h2>
             <div className="h-72 mt-4">
               <ResponsiveContainer width="100%" height="100%">
@@ -69,20 +69,20 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow-card">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-card dark:shadow-none border border-transparent dark:border-gray-700 transition-colors">
             <h2 className="font-semibold">Quick Add</h2>
             <form onSubmit={addCategory} className="mt-4 flex gap-2">
-              <input value={catName} onChange={e=>setCatName(e.target.value)} placeholder="New Category" className="border rounded-lg px-3 py-2 text-sm flex-1" />
-              <button disabled={loading} className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm">Add</button>
+              <input value={catName} onChange={e=>setCatName(e.target.value)} placeholder="New Category" className="border rounded-lg px-3 py-2 text-sm flex-1 bg-white dark:bg-gray-700 border-brand-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" />
+              <button disabled={loading} className="px-4 py-2 bg-brand-primary hover:bg-blue-600 text-white rounded-lg text-sm transition-colors disabled:opacity-60">Add</button>
             </form>
             <form onSubmit={addTemplate} className="mt-4 space-y-2">
-              <input value={newTpl.name} onChange={e=>setNewTpl({...newTpl,name:e.target.value})} placeholder="Service Name" className="border rounded-lg px-3 py-2 text-sm w-full" />
-              <select value={newTpl.category} onChange={e=>setNewTpl({...newTpl,category:e.target.value})} className="border rounded-lg px-3 py-2 text-sm w-full">
+              <input value={newTpl.name} onChange={e=>setNewTpl({...newTpl,name:e.target.value})} placeholder="Service Name" className="border rounded-lg px-3 py-2 text-sm w-full bg-white dark:bg-gray-700 border-brand-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" />
+              <select value={newTpl.category} onChange={e=>setNewTpl({...newTpl,category:e.target.value})} className="border rounded-lg px-3 py-2 text-sm w-full bg-white dark:bg-gray-700 border-brand-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
                 <option value="">Select Category</option>
                 {catalog.map(c=> <option key={c._id} value={c.name}>{c.name}</option>)}
               </select>
-              <input value={newTpl.defaultPrice} onChange={e=>setNewTpl({...newTpl,defaultPrice:e.target.value})} placeholder="Default Price" type="number" className="border rounded-lg px-3 py-2 text-sm w-full" />
-              <button disabled={loading} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm w-full">Add Service Template</button>
+              <input value={newTpl.defaultPrice} onChange={e=>setNewTpl({...newTpl,defaultPrice:e.target.value})} placeholder="Default Price" type="number" className="border rounded-lg px-3 py-2 text-sm w-full bg-white dark:bg-gray-700 border-brand-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" />
+              <button disabled={loading} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm w-full transition-colors disabled:opacity-60">Add Service Template</button>
             </form>
             {error && <p className="text-error text-xs mt-3">{error}</p>}
           </div>
@@ -100,21 +100,21 @@ export default function AdminDashboard() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {catalog.map(cat => (
-              <div key={cat._id} className="bg-white rounded-xl shadow-card p-5 flex flex-col">
+              <div key={cat._id} className="bg-white dark:bg-gray-800 rounded-xl shadow-card dark:shadow-none border border-transparent dark:border-gray-700 p-5 flex flex-col transition-colors">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium text-brand-gray-800">{cat.name}</h3>
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-brand-primary/10 text-brand-primary">{cat.services.length} svc</span>
+                  <h3 className="font-medium text-brand-gray-800 dark:text-gray-100">{cat.name}</h3>
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary">{cat.services.length} svc</span>
                 </div>
-                <ul className="space-y-1 mb-4 text-xs text-brand-gray-600 flex-1 overflow-auto max-h-40 pr-1">
+                <ul className="space-y-1 mb-4 text-xs text-brand-gray-600 dark:text-gray-300 flex-1 overflow-auto max-h-40 pr-1">
                   {cat.services.map(s => (
                     <li key={s._id} className="flex items-center justify-between gap-2">
                       <span className="truncate">{s.name}</span>
-                      <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded">₹{s.defaultPrice}</span>
+                      <span className="text-[10px] bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">₹{s.defaultPrice}</span>
                     </li>
                   ))}
                   {cat.services.length === 0 && <li className="italic opacity-60">No services</li>}
                 </ul>
-                <button onClick={()=>setNewTpl(t=>({...t, category: cat.name }))} className="mt-auto text-xs text-brand-primary underline self-start">Add Service Here</button>
+                <button onClick={()=>setNewTpl(t=>({...t, category: cat.name }))} className="mt-auto text-xs text-brand-primary underline self-start hover:text-blue-600">Add Service Here</button>
               </div>
             ))}
           </div>

@@ -6,6 +6,8 @@ const bookingSchema = new mongoose.Schema(
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     provider: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // filled after accept
     service: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
+    // For multi-provider flow we also capture template (neutral before provider assignment)
+    serviceTemplate: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceTemplate' },
   scheduledAt: { type: Date },
     // Ratings given after completion
     customerRating: { type: Number, min: 1, max: 5 }, // rating customer gave provider
@@ -32,6 +34,17 @@ const bookingSchema = new mongoose.Schema(
     completedAt: { type: Date },
     cancelledAt: { type: Date },
     rejectionReason: { type: String }
+    ,
+    // Multi-provider assignment pipeline
+    pendingProviders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // ordered queue not yet offered
+    offers: [{
+      provider: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      status: { type: String, enum: ['pending','accepted','declined','expired'], default: 'pending' },
+      offeredAt: { type: Date, default: Date.now },
+      respondedAt: { type: Date }
+    }],
+    providerResponseTimeout: { type: Date }, // when current offer expires
+    autoAssignMessage: { type: String }
   },
   { timestamps: true }
 );
