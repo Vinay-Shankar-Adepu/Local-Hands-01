@@ -4,13 +4,14 @@ import { useAuth } from "../context/AuthContext";
 import { 
   FiHome, 
   FiUser, 
-  FiSettings, 
   FiLogOut, 
   FiMenu, 
   FiX,
   FiBriefcase,
-  FiShoppingBag
+  FiShoppingBag,
+  FiSettings
 } from "react-icons/fi";
+import NotificationsBell from "./NotificationsBell"; // 🔔 import bell
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -27,8 +28,10 @@ export default function Navbar() {
   };
 
   const navItems = [
-    { name: "Home", path: "/", icon: FiHome, show: true },
-    { name: "Dashboard", path: `/${user?.role}`, icon: user?.role === "provider" ? FiBriefcase : FiShoppingBag, show: !!user?.role },
+    { name: "Home", path: "/", icon: FiHome, show: !user },
+    { name: "Dashboard", path: "/customer", icon: FiShoppingBag, show: user?.role === "customer" },
+    { name: "Dashboard", path: "/provider", icon: FiBriefcase, show: user?.role === "provider" },
+    { name: "Admin Panel", path: "/admin", icon: FiSettings, show: user?.role === "admin" },
     { name: "Profile", path: "/profile", icon: FiUser, show: !!user }
   ];
 
@@ -68,7 +71,7 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Auth Actions */}
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden md:flex items-center space-x-4">
             {!user ? (
               <>
                 <button
@@ -85,8 +88,11 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <div className="flex items-center space-x-3">
-                <div className="text-sm">
+              <div className="flex items-center space-x-4">
+                {/* 🔔 Notifications */}
+                <NotificationsBell />
+
+                <div className="text-sm text-right">
                   <div className="font-medium text-brand-gray-900">{user.name}</div>
                   <div className="text-brand-gray-500 capitalize">{user.role}</div>
                 </div>
@@ -155,7 +161,12 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <div className="pt-4 border-t border-brand-gray-200">
+              <div className="pt-4 border-t border-brand-gray-200 space-y-3">
+                {/* 🔔 Notifications for mobile */}
+                <div className="px-3">
+                  <NotificationsBell />
+                </div>
+
                 <div className="px-3 py-2">
                   <div className="text-base font-medium text-brand-gray-900">{user.name}</div>
                   <div className="text-sm text-brand-gray-500 capitalize">{user.role}</div>

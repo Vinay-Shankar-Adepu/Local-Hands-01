@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 
 export default function LoginPage() {
-  const { login, loginWithGoogleIdToken, redirectAfterAuth } = useAuth();
+  const { login, loginWithGoogleIdToken } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,8 +27,8 @@ export default function LoginPage() {
     setErr("");
     setLoading(true);
     try {
-      const u = await login(form);
-      redirectAfterAuth(u, nav);
+      await login(form);
+      nav("/welcome"); // ✅ Always go to welcome after login
     } catch (e) {
       setErr(e?.response?.data?.message || "Login failed. Please try again.");
     } finally {
@@ -39,8 +39,8 @@ export default function LoginPage() {
   const onGoogleSuccess = async (response) => {
     try {
       const idToken = response?.credential;
-      const u = await loginWithGoogleIdToken(idToken);
-      redirectAfterAuth(u, nav);
+      await loginWithGoogleIdToken(idToken);
+      nav("/welcome"); // ✅ Google login also goes to welcome
     } catch {
       setErr("Google sign-in failed. Please try again.");
     }

@@ -1,8 +1,13 @@
 import React from "react";
 import { FiMapPin, FiStar, FiClock, FiUser } from "react-icons/fi";
 
-export default function ServiceCard({ service, onBook, showBookButton = true, variant = "default" }) {
-  const { name, category, price, duration, provider, rating, image } = service;
+export default function ServiceCard({
+  service,
+  onBook,
+  showBookButton = true,
+  variant = "default",
+}) {
+  const { name, category, price, duration, provider, rating, image, distanceKm } = service;
 
   if (variant === "compact") {
     return (
@@ -20,7 +25,14 @@ export default function ServiceCard({ service, onBook, showBookButton = true, va
               {duration && <p className="text-xs text-brand-gray-400">/{duration}</p>}
             </div>
           </div>
-          
+
+          {distanceKm && (
+            <div className="flex items-center text-xs text-brand-gray-500 mb-2">
+              <FiMapPin className="w-3 h-3 mr-1" />
+              {distanceKm.toFixed(1)} km away
+            </div>
+          )}
+
           {showBookButton && onBook && (
             <button
               onClick={() => onBook(service)}
@@ -39,7 +51,10 @@ export default function ServiceCard({ service, onBook, showBookButton = true, va
       {/* Service Image */}
       <div className="relative h-48 overflow-hidden">
         <img
-          src={image || `https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=240&fit=crop&crop=center`}
+          src={
+            image ||
+            `https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=240&fit=crop&crop=center`
+          }
           alt={name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
@@ -51,7 +66,7 @@ export default function ServiceCard({ service, onBook, showBookButton = true, va
         {rating && (
           <div className="absolute top-3 right-3 flex items-center space-x-1 bg-white/90 rounded-full px-2 py-1 backdrop-blur-sm">
             <FiStar className="w-3 h-3 text-warning fill-current" />
-            <span className="text-xs font-medium text-brand-gray-700">{rating}</span>
+            <span className="text-xs font-medium text-brand-gray-700">{rating.toFixed(1)}</span>
           </div>
         )}
       </div>
@@ -63,7 +78,7 @@ export default function ServiceCard({ service, onBook, showBookButton = true, va
             <h3 className="font-semibold text-brand-gray-900 text-lg mb-1 group-hover:text-brand-primary transition-colors duration-200">
               {name}
             </h3>
-            
+
             {provider && (
               <div className="flex items-center text-sm text-brand-gray-500 mb-2">
                 <FiUser className="w-4 h-4 mr-1" />
@@ -72,20 +87,27 @@ export default function ServiceCard({ service, onBook, showBookButton = true, va
                   <>
                     <span className="mx-2">•</span>
                     <FiStar className="w-3 h-3 mr-1 text-warning" />
-                    <span>{provider.rating}</span>
+                    <span>{provider.rating.toFixed(1)}</span>
                   </>
                 )}
               </div>
             )}
-            
+
             {duration && (
               <div className="flex items-center text-sm text-brand-gray-500">
                 <FiClock className="w-4 h-4 mr-1" />
                 <span>{duration}</span>
               </div>
             )}
+
+            {distanceKm && (
+              <div className="flex items-center text-sm text-brand-gray-500 mt-1">
+                <FiMapPin className="w-4 h-4 mr-1" />
+                {distanceKm.toFixed(1)} km away
+              </div>
+            )}
           </div>
-          
+
           <div className="text-right">
             <p className="font-bold text-brand-primary text-2xl">₹{price}</p>
             {duration && <p className="text-sm text-brand-gray-400">per {duration}</p>}
@@ -104,4 +126,3 @@ export default function ServiceCard({ service, onBook, showBookButton = true, va
     </div>
   );
 }
-

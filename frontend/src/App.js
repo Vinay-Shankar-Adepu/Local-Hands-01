@@ -6,7 +6,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleGuard from "./components/RoleGuard";
 
 // Pages
-import HomePage, { CustomerHome, ProviderHome } from "./pages/HomePage";
+import HomePage from "./pages/HomePage";
+import CustomerHome from "./pages/CustomerHome";
+import ProviderHome from "./pages/ProviderHome";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -14,12 +16,17 @@ import RoleSelectPage from "./pages/RoleSelectPage";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import ProviderDashboard from "./pages/ProviderDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import WelcomePage from "./pages/WelcomePage";
+
+// ✅ New pages
+import CustomerHistory from "./pages/CustomerHistory";
+import ProviderHistory from "./pages/ProviderHistory";
 
 export default function App() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    // Centered Tailwind loader
+    // Centered Tailwind loader while auth is initializing
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="w-12 h-12 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
@@ -38,16 +45,22 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          {/* Role Selection (after login) */}
+          {/* Role Selection → Always redirect to WelcomePage */}
           <Route
             path="/choose-role"
             element={
               <ProtectedRoute>
-                {user?.role ? (
-                  <Navigate to={`/${user.role}`} replace />
-                ) : (
-                  <RoleSelectPage />
-                )}
+                {user?.role ? <Navigate to="/welcome" replace /> : <RoleSelectPage />}
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Welcome Page */}
+          <Route
+            path="/welcome"
+            element={
+              <ProtectedRoute>
+                <WelcomePage />
               </ProtectedRoute>
             }
           />
@@ -63,11 +76,15 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Customer History */}
           <Route
-            path="/profile"
+            path="/customer/history"
             element={
               <ProtectedRoute>
-                <ProfilePage />
+                <RoleGuard allow={["customer"]}>
+                  <CustomerHistory />
+                </RoleGuard>
               </ProtectedRoute>
             }
           />
@@ -84,6 +101,28 @@ export default function App() {
             }
           />
 
+          {/* Provider History */}
+          <Route
+            path="/provider/history"
+            element={
+              <ProtectedRoute>
+                <RoleGuard allow={["provider"]}>
+                  <ProviderHistory />
+                </RoleGuard>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Profile */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Admin Dashboard */}
           <Route
             path="/admin"
@@ -96,7 +135,7 @@ export default function App() {
             }
           />
 
-          {/* Catch-all route */}
+          {/* Catch-all → Redirect Home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
