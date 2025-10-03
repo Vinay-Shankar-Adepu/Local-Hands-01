@@ -9,7 +9,12 @@
     "dev": "nodemon src/index.js",
     "seed:services": "node src/seed/seedServices.js",
     "seed:users": "node src/seed/seedUsers.js",
-    "seed:providers": "node src/seed/seedProviders.js"
+    "seed:providers": "node src/seed/seedProviders.js",
+    "seed:catalog": "node src/seed/seedCatalog.js",
+  "seed:random-providers": "node src/seed/seedRandomProviders.js",
+    "recompute:ratings": "node src/scripts/recomputeRatings.js",
+    "migrate:services": "node src/scripts/migrateServicesToTemplates.js",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +30,8 @@
     "morgan": "^1.10.1"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
     "nodemon": "^3.1.10"
   }
 }

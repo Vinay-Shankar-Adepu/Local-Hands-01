@@ -21,10 +21,16 @@ router.post("/:bookingId", requireAuth, requireRole("customer"), async (req, res
     if (exists) return res.status(400).json({ message: "Already reviewed" });
 
     const providerId = booking.provider;
-    const review = await Review.create({ booking: booking._id, customer: req.userId, provider: providerId, rating, comment });
+    const review = await Review.create({ booking: booking._id, customer: req.userId, provider: providerId, rating, comment, direction: "customer_to_provider" });
 
-    // Update provider aggregate
-    await User.findByIdAndUpdate(providerId, { $inc: { ratingCount: 1, rating: rating } }); // simple additive; refine to avg later
+    // Properly update provider aggregate rating (average)
+    const prov = await User.findById(providerId).select("rating ratingCount");
+    if (prov) {
+      const total = prov.rating * prov.ratingCount + rating;
+      prov.ratingCount += 1;
+      prov.rating = total / prov.ratingCount;
+      await prov.save();
+    }
 
     res.status(201).json({ review });
   } catch (e) {

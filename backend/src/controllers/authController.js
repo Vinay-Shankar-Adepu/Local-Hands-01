@@ -132,7 +132,8 @@ export const setRole = async (req, res) => {
     ).select("-password");
 
     const token = signToken(user);
-    res.json({ token, user });
+    const needsServiceSelection = role === 'provider';
+    res.json({ token, user: { ...user.toObject(), needsServiceSelection } });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }

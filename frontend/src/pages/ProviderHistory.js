@@ -95,8 +95,20 @@ export default function ProviderHistory() {
                     Rate Customer
                   </button>
                 ) : b.providerRating ? (
-                  <div className="text-sm text-brand-gray-600">
-                    Your rating: {"⭐".repeat(b.providerRating)} ({b.providerRating}/5)
+                  <div className="text-sm text-brand-gray-600 space-y-2">
+                    {b.customerRating && (
+                      <div className='text-xs text-brand-gray-500'>Customer rated you: {"⭐".repeat(b.customerRating)} ({b.customerRating}/5)</div>
+                    )}
+                    {b.reviews && b.reviews.filter(r=>r.direction==='customer_to_provider').map((r,i)=>(
+                      r.comment ? <div key={i} className='text-xs text-brand-gray-500 italic'>"{r.comment}"</div> : null
+                    ))}
+                  </div>
+                ) : b.customerRating ? (
+                  <div className='text-xs text-brand-gray-500 space-y-1'>
+                    <div>Customer rated you: {"⭐".repeat(b.customerRating)} ({b.customerRating}/5)</div>
+                    {b.reviews && b.reviews.filter(r=>r.direction==='customer_to_provider').map((r,i)=>(
+                      r.comment ? <div key={i} className='italic'>"{r.comment}"</div> : null
+                    ))}
                   </div>
                 ) : null}
               </div>

@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import API from "../services/api";
+import RatingModal from "../components/RatingModal";
+import { RatingsAPI } from "../services/api.extras";
 import ServiceCard from "../components/ServiceCard";
 import {
   FiAlertCircle,
@@ -38,7 +40,14 @@ export default function CustomerHome() {
   const [bookingMsg, setBookingMsg] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [myBookings, setMyBookings] = useState([]);
+  const [providerProfile, setProviderProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [rateTarget, setRateTarget] = useState(null); // booking to rate
+  const [submittingRating, setSubmittingRating] = useState(false);
   const [location, setLocation] = useState({ lat: null, lng: null });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [providerSelect, setProviderSelect] = useState({ open: false, aggregate: null });
 
   const loadBookings = () => {
     API.get("/bookings/mine").then((r) => setMyBookings(r.data.bookings || []));
@@ -78,6 +87,43 @@ export default function CustomerHome() {
       .finally(() => setLoading(false));
   }, [location]);
 
+  // Aggregate duplicate services (same template or name+category) across providers
+  const aggregated = useMemo(() => {
+    const map = new Map();
+    for (const srv of services) {
+      const key = srv.template || `${srv.name}::${srv.category}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          name: srv.name,
+          category: srv.category,
+          basePrice: srv.price,
+          template: srv.template,
+          services: [srv],
+          providerCount: 1,
+        });
+      } else {
+        const agg = map.get(key);
+        agg.services.push(srv);
+        agg.providerCount = agg.services.length;
+      }
+    }
+    return Array.from(map.values());
+  }, [services]);
+
+  const filteredAggregated = useMemo(() => {
+    return aggregated.filter(a => (activeCategory === 'all' || a.category === activeCategory) && (!searchTerm || a.name.toLowerCase().includes(searchTerm.toLowerCase())));
+  }, [aggregated, activeCategory, searchTerm]);
+
+  const openBook = (aggregate) => {
+    if (!aggregate) return;
+    if (aggregate.services.length === 1) {
+      setBookingModal({ open: true, service: aggregate.services[0] });
+    } else {
+      setProviderSelect({ open: true, aggregate });
+    }
+  };
+
   useEffect(() => {
     loadBookings();
   }, []);
@@ -116,10 +162,41 @@ export default function CustomerHome() {
             <h2 className="text-2xl font-semibold text-brand-gray-900">
               Browse Nearby Services
             </h2>
-            <div className="text-sm text-brand-gray-500">
+            <div className="text-sm text-brand-gray-500 hidden md:block">
               {services.length} services available
             </div>
           </div>
+
+          {/* Category Pills & Search */}
+          {!loading && !error && services.length > 0 && (
+            <div className="mb-6 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {(() => {
+                  const categories = Array.from(new Set(services.map(s => s.category)));
+                  const items = ["all", ...categories];
+                  return items.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${activeCategory === cat ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white text-brand-gray-700 border-brand-gray-200 hover:bg-brand-gray-50'}`}
+                    >
+                      {cat === 'all' ? 'All' : cat}
+                    </button>
+                  ));
+                })()}
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e)=>setSearchTerm(e.target.value)}
+                  placeholder="Search services..."
+                  className="w-full md:w-80 px-4 py-2.5 rounded-xl border border-brand-gray-300 focus:ring-2 focus:ring-brand-primary focus:border-transparent text-sm"
+                />
+                <div className="text-xs text-brand-gray-500">Showing {filteredAggregated.length} result(s)</div>
+              </div>
+            </div>
+          )}
 
           {loading && (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -146,26 +223,88 @@ export default function CustomerHome() {
           )}
 
           {!loading && !error && (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.map((s) => (
-                <ServiceCard
-                  key={s._id}
-                  service={s}
-                  onBook={(service) => setBookingModal({ open: true, service })}
-                  variant="compact"
-                  badge={
-                    s.distance && (
-                      <span className="inline-flex items-center px-2 py-1 text-xs bg-brand-gray-100 rounded-lg">
-                        <FiMapPin className="w-3 h-3 mr-1 text-brand-primary" />
-                        {s.distance.toFixed(1)} km away
-                      </span>
-                    )
-                  }
-                />
-              ))}
-            </div>
+            (() => {
+              if(filteredAggregated.length === 0) {
+                return <div className="text-center py-12 bg-white rounded-xl2 border border-brand-gray-200 text-sm text-brand-gray-600">No services match your filters.</div>;
+              }
+              const categories = activeCategory === 'all' ? Array.from(new Set(filteredAggregated.map(s=>s.category))) : [activeCategory];
+              return (
+                <div className="space-y-10">
+                  {categories.map(cat => {
+                    const catAggs = filteredAggregated.filter(a=>a.category === cat);
+                    return (
+                      <div key={cat} id={cat.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-brand-gray-900">{cat}</h3>
+                          <span className="text-xs text-brand-gray-500">{catAggs.length} service{catAggs.length!==1 && 's'}</span>
+                        </div>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {catAggs.map(a => {
+                            const display = a.services[0];
+                            return (
+                              <div key={a.key} className="relative">
+                                {a.providerCount>1 && (
+                                  <div className="absolute top-2 right-2 z-10 text-[10px] bg-brand-primary text-white px-2 py-0.5 rounded-full shadow-sm">{a.providerCount} providers</div>
+                                )}
+                                <ServiceCard
+                                  service={display}
+                                  onBook={() => openBook(a)}
+                                  variant="compact"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
           )}
         </section>
+
+        {/* Provider Selection Modal */}
+        {providerSelect.open && providerSelect.aggregate && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Choose Provider – {providerSelect.aggregate.name}</h3>
+                  <button onClick={()=>setProviderSelect({ open:false, aggregate:null })} className="p-2 hover:bg-brand-gray-100 rounded-lg"><FiX className="w-5 h-5" /></button>
+                </div>
+                <div className="space-y-3 max-h-80 overflow-auto pr-2">
+                  {providerSelect.aggregate.services
+                    .slice()
+                    .sort((a,b)=>{
+                      const da = a.distance ?? 999999;
+                      const db = b.distance ?? 999999;
+                      if(da!==db) return da-db;
+                      return (b.rating||0) - (a.rating||0);
+                    })
+                    .map(srv => (
+                      <div key={srv._id} className="p-3 border rounded-lg flex items-center justify-between gap-3 text-sm">
+                        <div className="flex-1">
+                          <div className="font-medium text-brand-gray-900 flex items-center gap-2">
+                            {srv.provider?.name || 'Provider'}
+                            {srv.provider?.rating>0 && <span className="inline-flex items-center text-xs bg-yellow-500/10 text-yellow-700 px-1.5 py-0.5 rounded"><FiStar className="w-3 h-3 mr-0.5" />{srv.provider.rating.toFixed(1)}</span>}
+                          </div>
+                          <div className="text-xs text-brand-gray-500 flex items-center gap-2 flex-wrap">
+                            <span>₹{srv.price}</span>
+                            {srv.distance && <span className="flex items-center"><FiMapPin className="w-3 h-3 mr-1" />{srv.distance.toFixed(1)} km</span>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={()=>{ setProviderSelect({ open:false, aggregate:null }); setBookingModal({ open:true, service: srv }); }}
+                          className="px-3 py-1.5 rounded-md bg-brand-primary text-white text-xs font-medium hover:bg-blue-600"
+                        >Select</button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Booking Modal */}
         {bookingModal.open && (
@@ -348,25 +487,41 @@ export default function CustomerHome() {
                       )}
 
                       {b.provider && (
-                        <div className="flex items-center text-sm text-brand-gray-500">
-                          <FiUser className="w-4 h-4 mr-1" />
-                          <span>Provider: {b.provider.name}</span>
+                        <div className="flex items-center text-sm text-brand-gray-500 gap-2 flex-wrap">
+                          <span className='flex items-center'>
+                            <FiUser className="w-4 h-4 mr-1" /> {b.provider.name}
+                          </span>
                           {b.provider.rating && (
-                            <>
-                              <span className="mx-2">•</span>
-                              <FiStar className="w-3 h-3 mr-1 text-warning" />
-                              <span>{b.provider.rating}</span>
-                            </>
+                            <span className='flex items-center'>
+                              <FiStar className="w-3 h-3 mr-1 text-warning" /> {b.provider.rating}
+                            </span>
                           )}
+                          <button
+                            onClick={async ()=>{ setLoadingProfile(true); try { const { data } = await API.get(`/providers/${b.provider._id}/profile`); setProviderProfile(data); } catch { alert('Failed to load provider profile'); } finally { setLoadingProfile(false); } }}
+                            className='text-brand-primary text-xs underline'>View Profile</button>
                         </div>
                       )}
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-right space-y-2">
                       <p className="font-bold text-brand-primary text-lg">
                         ₹{b.service?.price || 0}
                       </p>
                       <p className="text-xs text-brand-gray-500">Service fee</p>
+                      {['requested','accepted'].includes(b.status) && (
+                        <button
+                          onClick={async ()=>{ if(!window.confirm('Cancel this booking?')) return; try { await API.patch(`/bookings/${b._id}/cancel`); loadBookings(); } catch(e){ alert(e?.response?.data?.message || 'Failed to cancel'); } }}
+                          className='mt-1 inline-flex items-center px-3 py-1.5 text-xs font-medium border border-error text-error rounded-lg hover:bg-error/10'>Cancel</button>
+                      )}
+                      {b.status === 'completed' && !b.customerRating && b.provider && (
+                        <button
+                          onClick={() => setRateTarget(b)}
+                          className='mt-2 inline-flex items-center px-3 py-1.5 text-xs font-medium bg-brand-primary text-white rounded-lg hover:bg-blue-600'
+                        >Rate Provider</button>
+                      )}
+                      {b.customerRating && (
+                        <div className='text-xs text-brand-gray-400'>Completed</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -374,6 +529,47 @@ export default function CustomerHome() {
             </div>
           )}
         </section>
+        {providerProfile && (
+          <div className='fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4' onClick={()=>setProviderProfile(null)}>
+            <div className='bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl' onClick={e=>e.stopPropagation()}>
+              <div className='flex items-center justify-between mb-4'>
+                <h3 className='text-xl font-semibold'>{providerProfile.provider.name}</h3>
+                <button onClick={()=>setProviderProfile(null)} className='text-sm text-brand-gray-500 hover:text-brand-gray-800'>Close</button>
+              </div>
+              <div className='flex items-center gap-4 mb-4'>
+                <div className='px-3 py-2 bg-yellow-500/10 rounded-lg text-sm'>⭐ {providerProfile.provider.rating?.toFixed?.(1) || 0} ({providerProfile.provider.ratingCount || 0})</div>
+                <div className='text-sm text-brand-gray-600'>Completed jobs: {providerProfile.stats.completedJobs}</div>
+              </div>
+              <h4 className='font-medium mb-2'>Recent Reviews</h4>
+              <div className='space-y-3 max-h-60 overflow-auto pr-2'>
+                {providerProfile.reviews.length === 0 && <p className='text-xs text-brand-gray-500'>No reviews yet.</p>}
+                {providerProfile.reviews.map((r,i)=>(
+                  <div key={i} className='p-3 border rounded-lg text-sm'>
+                    <div className='font-medium mb-1'>{'⭐'.repeat(r.rating)} <span className='text-xs text-brand-gray-500'>{new Date(r.createdAt).toLocaleDateString()}</span></div>
+                    {r.comment && <p className='text-brand-gray-600 text-xs'>{r.comment}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        <RatingModal
+          open={!!rateTarget}
+          onClose={()=>setRateTarget(null)}
+          title='Rate this provider'
+          submitting={submittingRating}
+          onSubmit={async ({ rating, comment }) => {
+            if(!rateTarget) return;
+            try {
+              setSubmittingRating(true);
+              await RatingsAPI.rateProvider({ bookingId: rateTarget._id, rating, comment });
+              setRateTarget(null);
+              loadBookings();
+            } catch(e){
+              alert(e?.response?.data?.message || 'Failed to submit rating. Please try again.');
+            } finally { setSubmittingRating(false); }
+          }}
+        />
       </div>
     </div>
   );

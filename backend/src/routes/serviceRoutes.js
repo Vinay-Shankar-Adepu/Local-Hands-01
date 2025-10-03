@@ -11,7 +11,7 @@ router.get("/", async (req, res) => {
     const q = {};
     if (category) q.category = category;
     if (provider) q.provider = provider;
-    const services = await Service.find(q).limit(100).sort("name");
+  const services = await Service.find(q).limit(100).sort("name").populate('provider','name rating ratingCount');
     // debug: count services
     // console.log("Services fetched:", services.length);
     res.json({ services });
@@ -23,45 +23,51 @@ router.get("/", async (req, res) => {
 // List only current provider's services
 router.get("/mine", requireAuth, requireRole("provider"), async (req, res) => {
   try {
-    const services = await Service.find({ provider: req.userId }).sort("name");
-    res.json({ services });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
-  }
+    const servicesRaw = await Service.find({ provider: req.userId }).populate('template','active').sort("name");
+    const services = servicesRaw.filter(s=>!s.template || s.template.active !== false); // hide inactive template services
+    const hidden = servicesRaw.length - services.length;
+    res.json({ services, hidden });
+  } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// Create service (provider only)
-router.post("/", requireAuth, requireRole("provider"), async (req, res) => {
-  try {
-    const { name, category, price, duration } = req.body;
-    if (!name || !category || price == null) {
-      return res.status(400).json({ message: "name, category, price required" });
-    }
-    const service = await Service.create({ name, category, price, duration, provider: req.userId });
-    res.status(201).json({ service });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
-  }
+// Create service (provider only) - disabled after introduction of admin templates
+router.post("/", requireAuth, requireRole("provider"), (req, res) => {
+  return res.status(410).json({ message: "Direct service creation disabled. Use /providers/select-services with templateIds." });
 });
 
-// Update service (owner provider)
-router.patch("/:id", requireAuth, requireRole("provider"), async (req, res) => {
+// Update service (owner provider) - restrict template derived services
+router.patch(":id", requireAuth, requireRole("provider"), async (req, res) => {
   try {
     const { id } = req.params;
-    const update = (({ name, category, price, duration }) => ({ name, category, price, duration }))(req.body);
-    Object.keys(update).forEach(k => update[k] === undefined && delete update[k]);
-    const service = await Service.findOneAndUpdate({ _id: id, provider: req.userId }, update, { new: true });
+    const service = await Service.findOne({ _id: id, provider: req.userId });
     if (!service) return res.status(404).json({ message: "Not found" });
+    if (service.template) {
+      // only allow duration (optional) for templated services
+      const { duration } = req.body;
+      if (duration !== undefined) service.duration = duration;
+      await service.save();
+      return res.json({ service });
+    }
+    // legacy (non-template) services: allow limited edits but lock price if lockedPrice
+    const fields = ["name","category","price","duration"]; 
+    fields.forEach(f=>{
+      if (req.body[f] !== undefined) {
+        if (f === 'price' && service.lockedPrice) return; // ignore price update
+        service[f] = req.body[f];
+      }
+    });
+    await service.save();
     res.json({ service });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// Delete service (owner provider)
-router.delete("/:id", requireAuth, requireRole("provider"), async (req, res) => {
+// Delete service (owner provider) - allow deletion of templated selection (they can re-add), block if service is in active bookings (future enhancement)
+router.delete(":id", requireAuth, requireRole("provider"), async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await Service.findOneAndDelete({ _id: id, provider: req.userId });
-    if (!deleted) return res.status(404).json({ message: "Not found" });
+    const service = await Service.findOne({ _id: id, provider: req.userId });
+    if (!service) return res.status(404).json({ message: "Not found" });
+    await service.deleteOne();
     res.json({ success: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });

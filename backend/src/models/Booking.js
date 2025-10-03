@@ -7,6 +7,9 @@ const bookingSchema = new mongoose.Schema(
     provider: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // filled after accept
     service: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
   scheduledAt: { type: Date },
+    // Ratings given after completion
+    customerRating: { type: Number, min: 1, max: 5 }, // rating customer gave provider
+    providerRating: { type: Number, min: 1, max: 5 }, // rating provider gave customer
 
     status: {
       type: String,

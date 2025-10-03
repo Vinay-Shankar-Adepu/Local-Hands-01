@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Review from "../models/Review.js";
 import jwt from "jsonwebtoken";
 
 export const updateProfile = async (req, res) => {
@@ -25,8 +26,13 @@ export const getProfile = async (req, res) => {
 export const getCustomerPublic = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await User.findById(id).select("name phone address rating ratingCount");
+    const user = await User.findById(id).select("name phone address rating ratingCount role");
     if (!user) return res.status(404).json({ message: "Not found" });
-    res.json({ user });
+    const reviews = await Review.find({ customer: id, direction: 'provider_to_customer' })
+      .sort('-createdAt')
+      .limit(10)
+      .select('rating comment createdAt');
+    const completedJobs = await Review.countDocuments({ customer: id, direction: 'provider_to_customer' });
+    res.json({ user, stats: { completedJobs }, reviews });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };

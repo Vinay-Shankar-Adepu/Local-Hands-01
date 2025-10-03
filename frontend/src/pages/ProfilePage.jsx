@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { FiUser, FiMail, FiPhone, FiMapPin, FiShield, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiMapPin, FiStar } from 'react-icons/fi';
 
 export default function ProfilePage() {
   const { user, saveSession } = useAuth();
@@ -69,6 +69,13 @@ export default function ProfilePage() {
           <h1 className='text-2xl font-bold tracking-tight'>My Profile</h1>
           <span className='text-[10px] uppercase tracking-wider bg-brand-primary/10 text-brand-primary px-2 py-1 rounded'>v1</span>
         </div>
+        {(user?.ratingCount>0) && (
+          <div className='mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-600 text-sm'>
+            <FiStar className='w-4 h-4 fill-current' />
+            <span>{user.rating?.toFixed?.(1)} / 5</span>
+            <span className='text-xs text-gray-500'>( {user.ratingCount} rating{user.ratingCount!==1?'s':''} )</span>
+          </div>
+        )}
         {(msg || error) && (
           <div className={`mb-4 text-sm rounded px-3 py-2 ${error ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>{error || msg}</div>
         )}

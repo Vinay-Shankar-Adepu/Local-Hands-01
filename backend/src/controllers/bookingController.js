@@ -2,6 +2,7 @@ import Booking from "../models/Booking.js";
 import Service from "../models/Service.js";
 import User from "../models/User.js";
 import { nextBookingId } from "../utils/generateId.js";
+import Review from "../models/Review.js";
 
 // Customer creates booking request at location
 export const createBooking = async (req, res) => {
@@ -10,8 +11,10 @@ export const createBooking = async (req, res) => {
     if (!serviceId || typeof lng !== "number" || typeof lat !== "number")
       return res.status(400).json({ message: "serviceId, lng, lat required" });
 
-    const service = await Service.findById(serviceId);
+  const service = await Service.findById(serviceId).populate('template');
     if (!service) return res.status(404).json({ message: "Service not found" });
+  if (!service.template) return res.status(400).json({ message: 'Service not available (legacy/disabled)' });
+  if (service.template && service.template.active === false) return res.status(400).json({ message: 'Service template inactive' });
 
     const bookingId = await nextBookingId();
 
@@ -98,6 +101,21 @@ export const completeBooking = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
+// Customer cancels a booking (before completion)
+export const cancelBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const booking = await Booking.findById(id);
+    if (!booking) return res.status(404).json({ message: "Not found" });
+    if (booking.customer.toString() !== req.userId) return res.status(403).json({ message: "Not your booking" });
+    if (!["requested", "accepted"].includes(booking.status)) return res.status(400).json({ message: "Cannot cancel at this stage" });
+    booking.status = "cancelled";
+    booking.cancelledAt = new Date();
+    await booking.save();
+    res.json({ booking });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
 // List bookings for current user (role-aware)
 export const myBookings = async (req, res) => {
   try {
@@ -106,7 +124,16 @@ export const myBookings = async (req, res) => {
   .populate({ path: "service", populate: { path: "provider", select: "_id" } })
         .populate("provider", "name rating ratingCount")
         .sort("-createdAt");
-      return res.json({ bookings: list });
+      // attach review linkage if completed
+      const enriched = await Promise.all(list.map(async b => {
+        if (b.status === 'completed') {
+          // find reviews for booking (both directions)
+          const revs = await Review.find({ booking: b._id }).select('direction rating comment createdAt');
+          return { ...b.toObject(), reviews: revs };
+        }
+        return b;
+      }));
+      return res.json({ bookings: enriched });
     }
     if (req.userRole === "provider") {
         // Include legacy bookings where provider not yet assigned but service owned by this provider
@@ -125,7 +152,15 @@ export const myBookings = async (req, res) => {
           // provider missing: compare service ownership
           return b.service && b.service.provider && b.service.provider.toString() === req.userId;
         });
-        return res.json({ bookings: list });
+        // enrich with reviews for completed
+        const enriched = await Promise.all(list.map(async b => {
+          if (b.status === 'completed') {
+            const revs = await Review.find({ booking: b._id }).select('direction rating comment createdAt');
+            return { ...b.toObject(), reviews: revs };
+          }
+          return b;
+        }));
+        return res.json({ bookings: enriched });
     }
     return res.status(400).json({ message: "Unsupported role" });
   } catch (e) {

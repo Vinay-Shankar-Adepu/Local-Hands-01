@@ -27,8 +27,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// helpful indexes
-userSchema.index({ email: 1 });
+// helpful indexes (avoid duplicates with unique fields)
 userSchema.index({ location: "2dsphere" });
 userSchema.index({ rating: -1 });
 

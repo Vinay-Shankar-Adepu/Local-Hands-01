@@ -10,6 +10,8 @@ export default function CustomerHistory() {
   const [error, setError] = useState("");
   const [rateFor, setRateFor] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [providerProfile, setProviderProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -72,8 +74,11 @@ export default function CustomerHistory() {
                       : "—"}
                   </div>
                   {b.provider?.name && (
-                    <div className="text-sm text-brand-gray-600 mt-1">
-                      Provider: {b.provider.name}
+                    <div className="text-sm text-brand-gray-600 mt-1 flex items-center gap-2">
+                      <span>Provider: {b.provider.name}</span>
+                      <button
+                        onClick={async () => { setLoadingProfile(true); try { const { data } = await API.get(`/providers/${b.provider._id}/profile`); setProviderProfile(data); } catch { alert('Failed to load provider profile'); } finally { setLoadingProfile(false); } }}
+                        className='text-brand-primary text-xs underline'>View Profile</button>
                     </div>
                   )}
                 </div>
@@ -100,8 +105,20 @@ export default function CustomerHistory() {
                     Rate Provider
                   </button>
                 ) : b.customerRating ? (
-                  <div className="text-sm text-brand-gray-600">
-                    Your rating: {"⭐".repeat(b.customerRating)} ({b.customerRating}/5)
+                  <div className="text-sm text-brand-gray-600 space-y-2">
+                    {b.providerRating && (
+                      <div className='text-xs text-brand-gray-500'>Provider rated you: {"⭐".repeat(b.providerRating)} ({b.providerRating}/5)</div>
+                    )}
+                    {b.reviews && b.reviews.filter(r=>r.direction==='provider_to_customer').map((r,i)=>(
+                      r.comment ? <div key={i} className='text-xs text-brand-gray-500 italic'>"{r.comment}"</div> : null
+                    ))}
+                  </div>
+                ) : b.providerRating ? (
+                  <div className='text-xs text-brand-gray-500 space-y-1'>
+                    <div>Provider rated you: {"⭐".repeat(b.providerRating)} ({b.providerRating}/5)</div>
+                    {b.reviews && b.reviews.filter(r=>r.direction==='provider_to_customer').map((r,i)=>(
+                      r.comment ? <div key={i} className='italic'>"{r.comment}"</div> : null
+                    ))}
                   </div>
                 ) : null}
               </div>
@@ -129,6 +146,30 @@ export default function CustomerHistory() {
           }
         }}
       />
+      {providerProfile && (
+        <div className='fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4' onClick={()=>setProviderProfile(null)}>
+          <div className='bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl' onClick={e=>e.stopPropagation()}>
+            <div className='flex items-center justify-between mb-4'>
+              <h3 className='text-xl font-semibold'>{providerProfile.provider.name}</h3>
+              <button onClick={()=>setProviderProfile(null)} className='text-sm text-brand-gray-500 hover:text-brand-gray-800'>Close</button>
+            </div>
+            <div className='flex items-center gap-4 mb-4'>
+              <div className='px-3 py-2 bg-yellow-500/10 rounded-lg text-sm'>⭐ {providerProfile.provider.rating?.toFixed?.(1) || 0} ({providerProfile.provider.ratingCount || 0})</div>
+              <div className='text-sm text-brand-gray-600'>Completed jobs: {providerProfile.stats.completedJobs}</div>
+            </div>
+            <h4 className='font-medium mb-2'>Recent Reviews</h4>
+            <div className='space-y-3 max-h-60 overflow-auto pr-2'>
+              {providerProfile.reviews.length === 0 && <p className='text-xs text-brand-gray-500'>No reviews yet.</p>}
+              {providerProfile.reviews.map((r,i)=>(
+                <div key={i} className='p-3 border rounded-lg text-sm'>
+                  <div className='font-medium mb-1'>{'⭐'.repeat(r.rating)} <span className='text-xs text-brand-gray-500'>{new Date(r.createdAt).toLocaleDateString()}</span></div>
+                  {r.comment && <p className='text-brand-gray-600 text-xs'>{r.comment}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
