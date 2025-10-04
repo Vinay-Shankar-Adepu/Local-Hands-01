@@ -87,6 +87,7 @@ export default function CustomerHome() {
       .finally(() => setLoading(false));
   }, [location]);
 
+
   // Aggregate duplicate services (same template or name+category) across providers
   const aggregated = useMemo(() => {
     const map = new Map();

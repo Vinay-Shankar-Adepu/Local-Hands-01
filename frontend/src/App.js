@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleGuard from "./components/RoleGuard";
+import LogoReveal from "./components/LogoReveal";
 
 // Pages
 import HomePage from "./pages/HomePage";
@@ -24,6 +25,7 @@ import ProviderHistory from "./pages/ProviderHistory";
 
 export default function App() {
   const { user, loading } = useAuth();
+  const [logoDone, setLogoDone] = useState(false);
 
   if (loading) {
     // Centered Tailwind loader while auth is initializing
@@ -33,112 +35,113 @@ export default function App() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
-      <Navbar />
+      {!logoDone && <LogoReveal onComplete={() => setLogoDone(true)} />}
+      {logoDone && <Navbar />}
+      {logoDone && (
+        <main className="flex-1">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
-      <main className="flex-1">
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+            {/* Role Selection → Always redirect to WelcomePage */}
+            <Route
+              path="/choose-role"
+              element={
+                <ProtectedRoute>
+                  {user?.role ? <Navigate to="/welcome" replace /> : <RoleSelectPage />}
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Role Selection → Always redirect to WelcomePage */}
-          <Route
-            path="/choose-role"
-            element={
-              <ProtectedRoute>
-                {user?.role ? <Navigate to="/welcome" replace /> : <RoleSelectPage />}
-              </ProtectedRoute>
-            }
-          />
+            {/* Welcome Page */}
+            <Route
+              path="/welcome"
+              element={
+                <ProtectedRoute>
+                  <WelcomePage />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Welcome Page */}
-          <Route
-            path="/welcome"
-            element={
-              <ProtectedRoute>
-                <WelcomePage />
-              </ProtectedRoute>
-            }
-          />
+            {/* Customer Dashboard */}
+            <Route
+              path="/customer"
+              element={
+                <ProtectedRoute>
+                  <RoleGuard allow={["customer"]}>
+                    <CustomerHome />
+                  </RoleGuard>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Customer Dashboard */}
-          <Route
-            path="/customer"
-            element={
-              <ProtectedRoute>
-                <RoleGuard allow={["customer"]}>
-                  <CustomerHome />
-                </RoleGuard>
-              </ProtectedRoute>
-            }
-          />
+            {/* Customer History */}
+            <Route
+              path="/customer/history"
+              element={
+                <ProtectedRoute>
+                  <RoleGuard allow={["customer"]}>
+                    <CustomerHistory />
+                  </RoleGuard>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Customer History */}
-          <Route
-            path="/customer/history"
-            element={
-              <ProtectedRoute>
-                <RoleGuard allow={["customer"]}>
-                  <CustomerHistory />
-                </RoleGuard>
-              </ProtectedRoute>
-            }
-          />
+            {/* Provider Dashboard */}
+            <Route
+              path="/provider"
+              element={
+                <ProtectedRoute>
+                  <RoleGuard allow={["provider"]}>
+                    <ProviderHome />
+                  </RoleGuard>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Provider Dashboard */}
-          <Route
-            path="/provider"
-            element={
-              <ProtectedRoute>
-                <RoleGuard allow={["provider"]}>
-                  <ProviderHome />
-                </RoleGuard>
-              </ProtectedRoute>
-            }
-          />
+            {/* Provider History */}
+            <Route
+              path="/provider/history"
+              element={
+                <ProtectedRoute>
+                  <RoleGuard allow={["provider"]}>
+                    <ProviderHistory />
+                  </RoleGuard>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Provider History */}
-          <Route
-            path="/provider/history"
-            element={
-              <ProtectedRoute>
-                <RoleGuard allow={["provider"]}>
-                  <ProviderHistory />
-                </RoleGuard>
-              </ProtectedRoute>
-            }
-          />
+            {/* Profile */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Profile */}
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
+            {/* Admin Dashboard */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <RoleGuard allow={["admin"]}>
+                    <AdminDashboard />
+                  </RoleGuard>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Admin Dashboard */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <RoleGuard allow={["admin"]}>
-                  <AdminDashboard />
-                </RoleGuard>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Catch-all → Redirect Home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
+            {/* Catch-all → Redirect Home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      )}
     </div>
   );
 }

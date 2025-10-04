@@ -89,4 +89,40 @@
   .dark .service-card:hover {
     box-shadow: 0 0 25px rgba(37, 99, 235, 0.35);
   }
+
+  /* === Hero Animations === */
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-fade-up { animation: fadeUp .6s ease forwards; opacity:0; }
+    .animate-fade-up-delay-1 { animation: fadeUp .6s ease .15s forwards; opacity:0; }
+    .animate-fade-up-delay-2 { animation: fadeUp .6s ease .3s forwards; opacity:0; }
+    .animate-breath { animation: breath 3.5s ease-in-out .6s infinite; }
+    .animate-gradient-shift { background-size:200% 200%; animation: gradientShift 6s linear infinite; }
+    .animate-twinkle { animation: twinkle 2.5s ease-in-out infinite; }
+    .animate-slide-down { animation: slideDown .7s cubic-bezier(.22,1.02,.36,1) forwards; opacity:0; }
+    .animate-pulse-border { animation: pulseBorder 3s ease-in-out infinite; }
+    .animate-kenburns { animation: kenBurns 15s ease-in-out infinite; }
+    .animate-icon-rotate { animation: iconRotate 1.2s linear; }
+    .animate-glow-pulse { animation: glowPulse 2.8s ease-in-out infinite; }
+    .animate-shimmer { position:relative; overflow:hidden; }
+    .animate-shimmer:after { content:""; position:absolute; inset:0; background:linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.3) 45%, transparent 60%); transform:translateX(-100%); animation: shimmer 4s linear infinite; }
+    .animate-badge-float { animation: badgeFloat 5s ease-in-out infinite; }
+    .animate-counter { animation: none; }
+    .animate-blur-in { animation: blurIn 1.2s ease forwards; filter:blur(18px); opacity:0; }
+    .animate-ripple { position:relative; overflow:hidden; }
+    .animate-ripple:active:after { content:""; position:absolute; left:var(--x); top:var(--y); width:10px; height:10px; background:rgba(255,255,255,0.45); border-radius:999px; transform:translate(-50%,-50%); animation:ripple .6s ease-out; pointer-events:none; }
+  }
 }
+
+@keyframes fadeUp { from { transform:translateY(16px); opacity:0;} to { transform:translateY(0); opacity:1;} }
+@keyframes breath { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-8px);} }
+@keyframes gradientShift { 0%{background-position:0% 50%;} 50%{background-position:100% 50%;} 100%{background-position:0% 50%;} }
+@keyframes twinkle { 0%,100%{ opacity:1;} 50%{ opacity:.35;} }
+@keyframes slideDown { from { transform:translateY(-18px); opacity:0;} to { transform:translateY(0); opacity:1;} }
+@keyframes pulseBorder { 0%{ box-shadow:0 0 0 0 rgba(59,130,246,0.4);} 70%{ box-shadow:0 0 0 10px rgba(59,130,246,0);} 100%{ box-shadow:0 0 0 0 rgba(59,130,246,0);} }
+@keyframes kenBurns { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.05);} }
+@keyframes iconRotate { from { transform:rotate(0deg);} to { transform:rotate(360deg);} }
+@keyframes glowPulse { 0%,100%{ box-shadow:0 0 0 0 rgba(59,130,246,0.25);} 50%{ box-shadow:0 0 12px 2px rgba(59,130,246,0.45);} }
+@keyframes shimmer { 0%{ transform:translateX(-100%);} 100%{ transform:translateX(100%);} }
+@keyframes badgeFloat { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-6px);} }
+@keyframes blurIn { to { filter:blur(0); opacity:1;} }
+@keyframes ripple { to { opacity:0; transform:translate(-50%,-50%) scale(18);} }
