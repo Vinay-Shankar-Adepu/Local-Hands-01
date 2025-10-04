@@ -6,11 +6,13 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          primary: "#0070f3",
+          primary: "#2563eb",
           secondary: "#7c3aed", 
           accent: "#059669",
           light: "#f8fafc",
           dark: "#0f172a",
+          darkCard: "#1e293b",
+          darkHover: "#334155",
           gray: {
             50: "#f8fafc",
             100: "#f1f5f9",
@@ -49,7 +51,10 @@ module.exports = {
         card: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
         cardHover: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
         glass: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
-        glow: "0 0 20px rgba(0, 112, 243, 0.15)"
+        glow: "0 0 20px rgba(0, 112, 243, 0.15)",
+        'glow-blue': "0 0 20px rgba(37, 99, 235, 0.3)",
+        'dark-card': "0 0 15px rgba(37, 99, 235, 0.15)",
+        'dark-glow': "0 4px 20px rgba(37, 99, 235, 0.25)"
       },
       backdropBlur: {
         'xs': '2px'

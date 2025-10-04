@@ -150,14 +150,14 @@ export default function CustomerHome() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-gray-50 dark:bg-gray-900 text-brand-gray-900 dark:text-gray-100 transition-colors">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-[#0f172a] dark:via-[#1e293b] dark:to-[#0f172a] text-brand-gray-900 dark:text-gray-100 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-brand-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-brand-gray-900 dark:text-white mb-2 bg-clip-text dark:bg-gradient-to-r dark:from-blue-400 dark:to-blue-600 dark:text-transparent">
             Customer Dashboard
           </h1>
-          <p className="text-brand-gray-600 dark:text-gray-300">
+          <p className="text-brand-gray-600 dark:text-gray-400">
             Book services and manage your appointments
           </p>
         </div>
@@ -168,7 +168,7 @@ export default function CustomerHome() {
             <h2 className="text-2xl font-semibold text-brand-gray-900 dark:text-white">
               Browse Nearby Services
             </h2>
-            <div className="text-sm text-brand-gray-500 dark:text-gray-400 hidden md:block">
+            <div className="text-sm text-brand-gray-500 dark:text-gray-400 hidden md:block bg-brand-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
               {services.length} services available
             </div>
           </div>
@@ -184,7 +184,7 @@ export default function CustomerHome() {
                     <button
                       key={cat}
                       onClick={() => setActiveCategory(cat)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${activeCategory === cat ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-gray-800 text-brand-gray-700 dark:text-gray-300 border-brand-gray-200 dark:border-gray-700 hover:bg-brand-gray-50 dark:hover:bg-gray-700'}`}
+                      className={`px-4 py-2 rounded-full text-sm font-medium border transition-all duration-300 ${activeCategory === cat ? 'bg-brand-primary text-white border-brand-primary shadow-glow-blue' : 'bg-white dark:bg-gray-800 text-brand-gray-700 dark:text-gray-300 border-brand-gray-200 dark:border-gray-700 hover:bg-brand-gray-50 dark:hover:bg-gray-700 dark:hover:border-blue-500/50'}`}
                     >
                       {cat === 'all' ? 'All' : cat}
                     </button>
@@ -197,9 +197,9 @@ export default function CustomerHome() {
                   value={searchTerm}
                   onChange={(e)=>setSearchTerm(e.target.value)}
                   placeholder="Search services..."
-                  className="w-full md:w-80 px-4 py-2.5 rounded-xl border border-brand-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-primary focus:border-transparent text-sm bg-white dark:bg-gray-800 text-brand-gray-900 dark:text-gray-100 placeholder-brand-gray-400 dark:placeholder-gray-500"
+                  className="w-full md:w-80 px-4 py-2.5 rounded-xl border border-brand-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-primary dark:focus:ring-blue-500 focus:border-transparent text-sm bg-white dark:bg-gray-800 text-brand-gray-900 dark:text-gray-100 placeholder-brand-gray-400 dark:placeholder-gray-500 transition-all duration-300"
                 />
-                <div className="text-xs text-brand-gray-500 dark:text-gray-400">Showing {filteredAggregated.length} result(s)</div>
+                <div className="text-xs text-brand-gray-500 dark:text-gray-400 bg-brand-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">Showing {filteredAggregated.length} result(s)</div>
               </div>
             </div>
           )}
@@ -209,19 +209,19 @@ export default function CustomerHome() {
               {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
-                  className="animate-pulse bg-white dark:bg-gray-800 rounded-xl2 h-64"
+                  className="animate-pulse bg-white dark:bg-gray-800 rounded-xl2 h-64 border border-brand-gray-200 dark:border-gray-700"
                 ></div>
               ))}
             </div>
           )}
 
           {error && (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl2 border border-brand-gray-200 dark:border-gray-700">
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl2 border border-brand-gray-200 dark:border-gray-700 dark:shadow-dark-card">
               <FiAlertCircle className="w-12 h-12 text-error mx-auto mb-4" />
-              <p className="text-error font-medium mb-2">{error}</p>
+              <p className="text-error dark:text-red-400 font-medium mb-2">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="text-brand-primary hover:underline"
+                className="text-brand-primary dark:text-blue-400 hover:underline transition-colors duration-300"
               >
                 Try again
               </button>
@@ -248,9 +248,9 @@ export default function CustomerHome() {
                           {catAggs.map(a => {
                             const display = a.services[0];
                             return (
-                              <div key={a.key} className="relative">
+                              <div key={a.key} className="relative group">
                                 {a.providerCount>1 && (
-                                  <div className="absolute top-2 right-2 z-10 text-[10px] bg-brand-primary text-white px-2 py-0.5 rounded-full shadow-sm">{a.providerCount} providers</div>
+                                  <div className="absolute top-2 right-2 z-10 text-[10px] bg-brand-primary dark:bg-blue-500 text-white px-2 py-0.5 rounded-full shadow-sm dark:shadow-glow-blue transition-all duration-300">{a.providerCount} providers</div>
                                 )}
                                 <ServiceCard
                                   service={display}
@@ -272,12 +272,12 @@ export default function CustomerHome() {
 
         {/* Provider Selection Modal */}
         {providerSelect.open && providerSelect.aggregate && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl border border-transparent dark:border-gray-700 transition-colors">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+            <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl dark:shadow-dark-glow border border-transparent dark:border-gray-700 transition-all duration-300 transform">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Choose Provider – {providerSelect.aggregate.name}</h3>
-                  <button onClick={()=>setProviderSelect({ open:false, aggregate:null })} className="p-2 hover:bg-brand-gray-100 dark:hover:bg-gray-700 rounded-lg"><FiX className="w-5 h-5" /></button>
+                  <h3 className="text-lg font-semibold text-brand-gray-900 dark:text-white">Choose Provider – {providerSelect.aggregate.name}</h3>
+                  <button onClick={()=>setProviderSelect({ open:false, aggregate:null })} className="p-2 hover:bg-brand-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-300"><FiX className="w-5 h-5 dark:text-gray-300" /></button>
                 </div>
                 <div className="space-y-3 max-h-80 overflow-auto pr-2">
                   {providerSelect.aggregate.services
@@ -289,11 +289,11 @@ export default function CustomerHome() {
                       return (b.rating||0) - (a.rating||0);
                     })
                     .map(srv => (
-                      <div key={srv._id} className="p-3 border rounded-lg flex items-center justify-between gap-3 text-sm bg-white dark:bg-gray-700/60 border-brand-gray-200 dark:border-gray-600">
+                      <div key={srv._id} className="p-3 border rounded-lg flex items-center justify-between gap-3 text-sm bg-white dark:bg-gray-700/60 border-brand-gray-200 dark:border-gray-600 hover:border-brand-primary dark:hover:border-blue-500 transition-all duration-300 dark:shadow-dark-card dark:hover:shadow-dark-glow">
                         <div className="flex-1">
                           <div className="font-medium text-brand-gray-900 dark:text-gray-100 flex items-center gap-2">
                             {srv.provider?.name || 'Provider'}
-                            {srv.provider?.rating>0 && <span className="inline-flex items-center text-xs bg-yellow-500/10 text-yellow-700 px-1.5 py-0.5 rounded"><FiStar className="w-3 h-3 mr-0.5" />{srv.provider.rating.toFixed(1)}</span>}
+                            {srv.provider?.rating>0 && <span className="inline-flex items-center text-xs bg-yellow-500/10 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded"><FiStar className="w-3 h-3 mr-0.5" />{srv.provider.rating.toFixed(1)}</span>}
                           </div>
                           <div className="text-xs text-brand-gray-500 dark:text-gray-400 flex items-center gap-2 flex-wrap">
                             <span>₹{srv.price}</span>
@@ -302,7 +302,7 @@ export default function CustomerHome() {
                         </div>
                         <button
                           onClick={()=>{ setProviderSelect({ open:false, aggregate:null }); setBookingModal({ open:true, service: srv }); }}
-                          className="px-3 py-1.5 rounded-md bg-brand-primary text-white text-xs font-medium hover:bg-blue-600"
+                          className="px-3 py-1.5 rounded-md bg-brand-primary dark:bg-blue-500 text-white text-xs font-medium hover:bg-blue-600 dark:hover:bg-blue-600 transition-all duration-300 dark:shadow-glow-blue"
                         >Select</button>
                       </div>
                     ))}
@@ -314,39 +314,39 @@ export default function CustomerHome() {
 
         {/* Booking Modal */}
         {bookingModal.open && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl animate-scale-in border border-transparent dark:border-gray-700 transition-colors">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+            <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl dark:shadow-dark-glow animate-scale-in border border-transparent dark:border-gray-700 transition-all duration-300">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-semibold text-brand-gray-900">
+                  <h3 className="text-xl font-semibold text-brand-gray-900 dark:text-white">
                     Book Service
                   </h3>
                   <button
                     onClick={() => setBookingModal({ open: false, service: null })}
-                    className="p-2 hover:bg-brand-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                    className="p-2 hover:bg-brand-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-300"
                   >
-                    <FiX className="w-5 h-5 text-brand-gray-500" />
+                    <FiX className="w-5 h-5 text-brand-gray-500 dark:text-gray-400" />
                   </button>
                 </div>
 
-                <div className="mb-6 p-4 bg-brand-gray-50 dark:bg-gray-700/40 rounded-xl">
+                <div className="mb-6 p-4 bg-brand-gray-50 dark:bg-gray-700/40 rounded-xl border border-transparent dark:border-gray-600">
                   <h4 className="font-medium text-brand-gray-900 dark:text-gray-100">
                     {bookingModal.service?.name}
                   </h4>
                   <p className="text-sm text-brand-gray-600 dark:text-gray-400 capitalize">
                     {bookingModal.service?.category}
                   </p>
-                  <p className="text-lg font-bold text-brand-primary mt-2">
+                  <p className="text-lg font-bold text-brand-primary dark:text-blue-400 mt-2">
                     ₹{bookingModal.service?.price}
                   </p>
                 </div>
 
                 {bookingMsg && (
                   <div
-                    className={`mb-4 p-3 rounded-lg text-sm ${
+                    className={`mb-4 p-3 rounded-lg text-sm transition-all duration-300 ${
                       bookingMsg.includes("requested")
-                        ? "bg-success/10 text-success"
-                        : "bg-error/10 text-error"
+                        ? "bg-success/10 dark:bg-success/20 text-success dark:text-green-400 border border-success/30 dark:shadow-glow-blue"
+                        : "bg-error/10 dark:bg-error/20 text-error dark:text-red-400 border border-error/30"
                     }`}
                   >
                     {bookingMsg}
@@ -399,7 +399,7 @@ export default function CustomerHome() {
                       type="datetime-local"
                       value={scheduledAt}
                       onChange={(e) => setScheduledAt(e.target.value)}
-                      className="w-full px-4 py-3 border border-brand-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-brand-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-brand-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-brand-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-brand-primary dark:focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                       required
                     />
                   </div>
@@ -408,13 +408,13 @@ export default function CustomerHome() {
                     <button
                       type="button"
                       onClick={() => setBookingModal({ open: false, service: null })}
-                      className="flex-1 px-4 py-3 border border-brand-gray-300 dark:border-gray-600 text-brand-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-brand-gray-50 dark:hover:bg-gray-700"
+                      className="flex-1 px-4 py-3 border border-brand-gray-300 dark:border-gray-600 text-brand-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-brand-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
                     >
                       Cancel
                     </button>
                     <button
                       disabled={bookingLoading}
-                      className="flex-1 px-4 py-3 bg-brand-primary text-white font-medium rounded-xl hover:bg-blue-600 disabled:opacity-50"
+                      className="flex-1 px-4 py-3 bg-brand-primary dark:bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 dark:hover:bg-blue-600 disabled:opacity-50 transition-all duration-300 dark:shadow-glow-blue"
                     >
                       {bookingLoading ? "Requesting..." : "Confirm Booking"}
                     </button>
@@ -440,12 +440,12 @@ export default function CustomerHome() {
           </div>
 
           {myBookings.length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl2 border border-brand-gray-200 dark:border-gray-700">
-              <FiCalendar className="w-12 h-12 text-brand-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-brand-gray-900 mb-2">
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl2 border border-brand-gray-200 dark:border-gray-700 dark:shadow-dark-card transition-all duration-300">
+              <FiCalendar className="w-12 h-12 text-brand-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-brand-gray-900 dark:text-white mb-2">
                 No bookings yet
               </h3>
-              <p className="text-brand-gray-600 mb-6">
+              <p className="text-brand-gray-600 dark:text-gray-400 mb-6">
                 Book your first service to get started!
               </p>
               <button
@@ -454,7 +454,7 @@ export default function CustomerHome() {
                     .querySelector("[data-services-section]")
                     ?.scrollIntoView({ behavior: "smooth" })
                 }
-                className="inline-flex items-center px-6 py-3 bg-brand-primary text-white font-medium rounded-xl hover:bg-blue-600"
+                className="inline-flex items-center px-6 py-3 bg-brand-primary dark:bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 dark:hover:bg-blue-600 transition-all duration-300 dark:shadow-glow-blue"
               >
                 Browse Services
                 <FiZap className="ml-2 w-4 h-4" />
@@ -463,7 +463,7 @@ export default function CustomerHome() {
           ) : (
             <div className="space-y-4">
               {myBookings.map((b) => (
-                <div key={b._id} className="bg-white dark:bg-gray-800 rounded-xl border border-brand-gray-200 dark:border-gray-700 shadow-card dark:shadow-none p-6 transition-colors">
+                <div key={b._id} className="bg-white dark:bg-gray-800 rounded-xl border border-brand-gray-200 dark:border-gray-700 shadow-card dark:shadow-dark-card hover:border-brand-primary dark:hover:border-blue-500 dark:hover:shadow-dark-glow p-6 transition-all duration-300">
                   <div className="flex flex-col md:flex-row md:items-center gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -471,7 +471,7 @@ export default function CustomerHome() {
                           #{b.bookingId}
                         </h3>
                         <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border transition-colors duration-300 ${getStatusColor(
                             b.status
                           )}`}
                         >
@@ -500,7 +500,7 @@ export default function CustomerHome() {
                       )}
 
                       {(!b.provider && b.status==='requested') && (
-                        <div className="text-xs text-brand-gray-500 mb-1">Assigning best provider...</div>
+                        <div className="text-xs text-brand-gray-500 dark:text-gray-400 mb-1">Assigning best provider...</div>
                       )}
                       {b.provider && (
                         <div className="flex items-center text-sm text-brand-gray-500 dark:text-gray-400 gap-2 flex-wrap">
@@ -509,29 +509,29 @@ export default function CustomerHome() {
                           </span>
                           {b.provider.rating && (
                             <span className='flex items-center'>
-                              <FiStar className="w-3 h-3 mr-1 text-warning" /> {b.provider.rating}
+                              <FiStar className="w-3 h-3 mr-1 text-warning dark:text-yellow-400" /> {b.provider.rating}
                             </span>
                           )}
                           <button
                             onClick={async ()=>{ setLoadingProfile(true); try { const { data } = await API.get(`/providers/${b.provider._id}/profile`); setProviderProfile(data); } catch { alert('Failed to load provider profile'); } finally { setLoadingProfile(false); } }}
-                            className='text-brand-primary hover:text-blue-600 text-xs underline'>View Profile</button>
+                            className='text-brand-primary dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500 text-xs underline transition-colors duration-300'>View Profile</button>
                         </div>
                       )}
                     </div>
 
                     <div className="text-right space-y-2">
-                      <p className="font-bold text-brand-primary text-lg">
+                      <p className="font-bold text-brand-primary dark:text-blue-400 text-lg">
                         ₹{b.service?.price || 0}
                       </p>
-                      <p className="text-xs text-brand-gray-500">Service fee</p>
+                      <p className="text-xs text-brand-gray-500 dark:text-gray-400">Service fee</p>
                       {['requested','accepted'].includes(b.status) && (
-                        <button onClick={async ()=>{ if(!window.confirm('Cancel this booking?')) return; try { await API.patch(`/bookings/${b._id}/cancel`); loadBookings(); } catch(e){ alert(e?.response?.data?.message || 'Failed to cancel'); } }} className='mt-1 inline-flex items-center px-3 py-1.5 text-xs font-medium border border-error text-error rounded-lg hover:bg-error/10'>Cancel</button>
+                        <button onClick={async ()=>{ if(!window.confirm('Cancel this booking?')) return; try { await API.patch(`/bookings/${b._id}/cancel`); loadBookings(); } catch(e){ alert(e?.response?.data?.message || 'Failed to cancel'); } }} className='mt-1 inline-flex items-center px-3 py-1.5 text-xs font-medium border border-error dark:border-red-500 text-error dark:text-red-400 rounded-lg hover:bg-error/10 dark:hover:bg-red-500/20 transition-all duration-300'>Cancel</button>
                       )}
                       {b.status === 'completed' && !b.customerRating && b.provider && (
-                        <button onClick={() => setRateTarget(b)} className='mt-2 inline-flex items-center px-3 py-1.5 text-xs font-medium bg-brand-primary text-white rounded-lg hover:bg-blue-600'>Rate Provider</button>
+                        <button onClick={() => setRateTarget(b)} className='mt-2 inline-flex items-center px-3 py-1.5 text-xs font-medium bg-brand-primary dark:bg-blue-500 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-600 transition-all duration-300 dark:shadow-glow-blue'>Rate Provider</button>
                       )}
                       {b.customerRating && (
-                        <div className='text-xs text-brand-gray-400'>Completed</div>
+                        <div className='text-xs text-brand-gray-400 dark:text-gray-500'>Completed</div>
                       )}
                     </div>
                   </div>
@@ -541,23 +541,23 @@ export default function CustomerHome() {
           )}
         </section>
         {providerProfile && (
-          <div className='fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4' onClick={()=>setProviderProfile(null)}>
-            <div className='bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg p-6 shadow-xl border border-transparent dark:border-gray-700 transition-colors' onClick={e=>e.stopPropagation()}>
+          <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-300' onClick={()=>setProviderProfile(null)}>
+            <div className='bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg p-6 shadow-xl dark:shadow-dark-glow border border-transparent dark:border-gray-700 transition-all duration-300' onClick={e=>e.stopPropagation()}>
               <div className='flex items-center justify-between mb-4'>
-                <h3 className='text-xl font-semibold'>{providerProfile.provider.name}</h3>
-                <button onClick={()=>setProviderProfile(null)} className='text-sm text-brand-gray-500 hover:text-brand-gray-800'>Close</button>
+                <h3 className='text-xl font-semibold text-brand-gray-900 dark:text-white'>{providerProfile.provider.name}</h3>
+                <button onClick={()=>setProviderProfile(null)} className='text-sm text-brand-gray-500 dark:text-gray-400 hover:text-brand-gray-800 dark:hover:text-gray-200 transition-colors duration-300'>Close</button>
               </div>
               <div className='flex items-center gap-4 mb-4'>
-                <div className='px-3 py-2 bg-yellow-500/10 rounded-lg text-sm'>⭐ {providerProfile.provider.rating?.toFixed?.(1) || 0} ({providerProfile.provider.ratingCount || 0})</div>
-                <div className='text-sm text-brand-gray-600'>Completed jobs: {providerProfile.stats.completedJobs}</div>
+                <div className='px-3 py-2 bg-yellow-500/10 dark:bg-yellow-500/20 rounded-lg text-sm text-brand-gray-900 dark:text-gray-100'>⭐ {providerProfile.provider.rating?.toFixed?.(1) || 0} ({providerProfile.provider.ratingCount || 0})</div>
+                <div className='text-sm text-brand-gray-600 dark:text-gray-400'>Completed jobs: {providerProfile.stats.completedJobs}</div>
               </div>
-              <h4 className='font-medium mb-2'>Recent Reviews</h4>
+              <h4 className='font-medium text-brand-gray-900 dark:text-white mb-2'>Recent Reviews</h4>
               <div className='space-y-3 max-h-60 overflow-auto pr-2'>
-                {providerProfile.reviews.length === 0 && <p className='text-xs text-brand-gray-500'>No reviews yet.</p>}
+                {providerProfile.reviews.length === 0 && <p className='text-xs text-brand-gray-500 dark:text-gray-400'>No reviews yet.</p>}
                 {providerProfile.reviews.map((r,i)=>(
-                  <div key={i} className='p-3 border rounded-lg text-sm'>
-                    <div className='font-medium mb-1'>{'⭐'.repeat(r.rating)} <span className='text-xs text-brand-gray-500'>{new Date(r.createdAt).toLocaleDateString()}</span></div>
-                    {r.comment && <p className='text-brand-gray-600 text-xs'>{r.comment}</p>}
+                  <div key={i} className='p-3 border border-brand-gray-200 dark:border-gray-700 bg-brand-gray-50 dark:bg-gray-700/40 rounded-lg text-sm transition-all duration-300'>
+                    <div className='font-medium text-brand-gray-900 dark:text-gray-100 mb-1'>{'⭐'.repeat(r.rating)} <span className='text-xs text-brand-gray-500 dark:text-gray-400'>{new Date(r.createdAt).toLocaleDateString()}</span></div>
+                    {r.comment && <p className='text-brand-gray-600 dark:text-gray-300 text-xs'>{r.comment}</p>}
                   </div>
                 ))}
               </div>

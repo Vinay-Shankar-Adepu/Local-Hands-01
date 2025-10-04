@@ -41,18 +41,18 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-brand-gray-200 dark:border-gray-800 shadow-sm transition-colors">
+    <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl border-b border-brand-gray-200 dark:border-gray-700/50 shadow-sm dark:shadow-lg dark:shadow-black/20 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link 
             to="/" 
-            className="flex items-center space-x-2 text-2xl font-bold text-brand-primary hover:text-blue-600 transition-colors duration-200"
+            className="flex items-center space-x-2 text-2xl font-bold text-brand-primary dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500 transition-all duration-300 group"
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">LH</span>
+            <div className="w-10 h-10 bg-gradient-to-br from-brand-primary to-blue-600 dark:from-blue-500 dark:to-blue-700 rounded-xl flex items-center justify-center shadow-md dark:shadow-glow-blue group-hover:scale-105 transition-transform duration-300">
+              <span className="text-white text-base font-bold">LH</span>
             </div>
-            <span className="hidden sm:block">LocalHands</span>
+            <span className="hidden sm:block bg-clip-text dark:bg-gradient-to-r dark:from-blue-400 dark:to-blue-600">LocalHands</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -62,10 +62,10 @@ export default function Navbar() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                     isActive(item.path)
-                      ? "bg-brand-primary text-white shadow-glow"
-                      : "text-brand-gray-600 hover:text-brand-primary hover:bg-brand-gray-50"
+                      ? "bg-brand-primary dark:bg-blue-500 text-white shadow-glow dark:shadow-glow-blue"
+                      : "text-brand-gray-600 dark:text-gray-300 hover:text-brand-primary dark:hover:text-blue-400 hover:bg-brand-gray-50 dark:hover:bg-gray-800"
                   }`}
                 >
                   <item.icon className="w-4 h-4 mr-2" />
@@ -76,69 +76,91 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Auth Actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
+            {/* Prominent Theme Switcher - Always visible */}
+            {mounted && (
+              <button
+                onClick={()=> setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="group relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-brand-gray-100 to-brand-gray-200 dark:from-gray-800 dark:to-gray-700 text-brand-gray-700 dark:text-gray-200 hover:from-brand-gray-200 hover:to-brand-gray-300 dark:hover:from-gray-700 dark:hover:to-gray-600 border border-brand-gray-300 dark:border-gray-600 shadow-sm dark:shadow-glow-blue hover:shadow-md dark:hover:shadow-dark-glow transition-all duration-300 hover:scale-105"
+                aria-label="Toggle dark mode"
+              >
+                <span className="text-lg transition-transform duration-300 group-hover:rotate-180">
+                  {theme === 'dark' ? '☀️' : '🌙'}
+                </span>
+                <span className="hidden lg:block">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+              </button>
+            )}
+
             {!user ? (
               <>
                 <button
                   onClick={() => nav("/login")}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-brand-gray-700 hover:text-brand-primary transition-colors duration-200"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-brand-gray-700 dark:text-gray-300 hover:text-brand-primary dark:hover:text-blue-400 transition-colors duration-300"
                 >
                   Sign In
                 </button>
                 <button
                   onClick={() => nav("/register")}
-                  className="inline-flex items-center px-6 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-all duration-200 shadow-card hover:shadow-cardHover transform hover:-translate-y-0.5"
+                  className="inline-flex items-center px-6 py-2 bg-gradient-to-r from-brand-primary to-blue-600 dark:from-blue-500 dark:to-blue-700 text-white text-sm font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 dark:hover:from-blue-600 dark:hover:to-blue-800 transition-all duration-300 shadow-md dark:shadow-glow-blue hover:shadow-lg dark:hover:shadow-dark-glow transform hover:-translate-y-0.5 hover:scale-105"
                 >
                   Get Started
                 </button>
               </>
             ) : (
-              <div className="flex items-center space-x-4">
+              <>
                 {/* 🔔 Notifications */}
                 <NotificationsBell />
 
-                {/* Theme Toggle */}
+                {/* Provider Go Live Button */}
                 {user?.role === 'provider' && mounted && (
                   <button
                     disabled={liveUpdating}
                     onClick={async ()=> {
                       try { setLiveUpdating(true); await setAvailability(!user.isAvailable); } finally { setLiveUpdating(false); }
                     }}
-                    className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium border ${user?.isAvailable ? 'bg-green-500 hover:bg-green-600 text-white border-green-600 dark:border-green-500' : 'bg-amber-500/90 hover:bg-amber-500 text-white border-amber-600 dark:border-amber-500'} disabled:opacity-60 disabled:cursor-not-allowed transition-colors`}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border shadow-sm transition-all duration-300 hover:scale-105 ${
+                      user?.isAvailable 
+                        ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-green-600 dark:border-green-500 shadow-green-500/20 dark:shadow-green-500/40' 
+                        : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white border-amber-600 dark:border-amber-500 shadow-amber-500/20 dark:shadow-amber-500/40'
+                    } disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100`}
                   >
-                    {user?.isAvailable ? '⚡ Live' : 'Go Live'}
-                  </button>
-                )}
-                {mounted && (
-                  <button
-                    onClick={()=> setTheme(theme === 'dark' ? 'light' : 'dark')}
-                    className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium border border-transparent bg-brand-gray-100 dark:bg-gray-800 text-brand-gray-600 dark:text-gray-300 hover:bg-brand-gray-200 dark:hover:bg-gray-700 transition-colors"
-                    aria-label="Toggle dark mode"
-                  >
-                    {theme === 'dark' ? '🌞' : '🌙'}
+                    {user?.isAvailable ? '⚡ Live' : '🔴 Go Live'}
                   </button>
                 )}
 
-                <div className="text-sm text-right">
-                  <div className="font-medium text-brand-gray-900">{user.name}</div>
-                  <div className="text-brand-gray-500 capitalize">{user.role}</div>
+                {/* User Info */}
+                <div className="hidden lg:block text-sm text-right px-3 py-2 rounded-lg bg-brand-gray-50 dark:bg-gray-800/50 border border-transparent dark:border-gray-700">
+                  <div className="font-semibold text-brand-gray-900 dark:text-white">{user.name}</div>
+                  <div className="text-xs text-brand-gray-500 dark:text-gray-400 capitalize">{user.role}</div>
                 </div>
+
+                {/* Sign Out */}
                 <button
                   onClick={handleLogout}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-error hover:bg-error/10 rounded-lg transition-all duration-200"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-error dark:text-red-400 hover:bg-error/10 dark:hover:bg-red-500/20 border border-transparent hover:border-error/20 dark:hover:border-red-500/30 rounded-xl transition-all duration-300 hover:scale-105"
                 >
-                  <FiLogOut className="w-4 h-4 mr-2" />
-                  Sign Out
+                  <FiLogOut className="w-4 h-4" />
+                  <span className="hidden lg:block">Sign Out</span>
                 </button>
-              </div>
+              </>
             )}
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center gap-2">
+            {/* Mobile Theme Switcher */}
+            {mounted && (
+              <button
+                onClick={()=> setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="inline-flex items-center justify-center p-2 rounded-lg bg-brand-gray-100 dark:bg-gray-800 text-brand-gray-600 dark:text-gray-300 hover:bg-brand-gray-200 dark:hover:bg-gray-700 border border-brand-gray-300 dark:border-gray-600 transition-all duration-300"
+                aria-label="Toggle dark mode"
+              >
+                <span className="text-lg">{theme === 'dark' ? '☀️' : '🌙'}</span>
+              </button>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-lg text-brand-gray-600 hover:text-brand-primary hover:bg-brand-gray-50 transition-colors duration-200"
+              className="inline-flex items-center justify-center p-2 rounded-lg text-brand-gray-600 dark:text-gray-300 hover:text-brand-primary dark:hover:text-blue-400 hover:bg-brand-gray-50 dark:hover:bg-gray-800 border border-transparent hover:border-brand-gray-300 dark:hover:border-gray-600 transition-all duration-300"
             >
               {mobileMenuOpen ? (
                 <FiX className="block h-6 w-6" />
@@ -153,17 +175,17 @@ export default function Navbar() {
       {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="md:hidden animate-slide-up">
-          <div className="px-2 pt-2 pb-3 space-y-1 bg-white dark:bg-gray-900 border-t border-brand-gray-200 dark:border-gray-800 shadow-card transition-colors">
+          <div className="px-2 pt-2 pb-3 space-y-1 bg-white/95 dark:bg-gray-900/98 backdrop-blur-xl border-t border-brand-gray-200 dark:border-gray-700/50 shadow-lg dark:shadow-2xl dark:shadow-black/40 transition-all duration-300">
             {navItems.map((item) => (
               item.show && (
                 <Link
                   key={item.path}
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-all duration-200 ${
+                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium transition-all duration-300 ${
                     isActive(item.path)
-                      ? "bg-brand-primary text-white"
-                      : "text-brand-gray-600 hover:text-brand-primary hover:bg-brand-gray-50"
+                      ? "bg-brand-primary dark:bg-blue-500 text-white dark:shadow-glow-blue"
+                      : "text-brand-gray-600 dark:text-gray-300 hover:text-brand-primary dark:hover:text-blue-400 hover:bg-brand-gray-50 dark:hover:bg-gray-800"
                   }`}
                 >
                   <item.icon className="w-5 h-5 mr-3" />
@@ -176,47 +198,45 @@ export default function Navbar() {
               <div className="pt-4 space-y-2">
                 <button
                   onClick={() => { nav("/login"); setMobileMenuOpen(false); }}
-                  className="w-full flex items-center px-3 py-3 text-base font-medium text-brand-gray-600 hover:text-brand-primary hover:bg-brand-gray-50 rounded-lg transition-colors duration-200"
+                  className="w-full flex items-center px-3 py-3 text-base font-medium text-brand-gray-600 dark:text-gray-300 hover:text-brand-primary dark:hover:text-blue-400 hover:bg-brand-gray-50 dark:hover:bg-gray-800 rounded-lg transition-all duration-300"
                 >
                   Sign In
                 </button>
                 <button
                   onClick={() => { nav("/register"); setMobileMenuOpen(false); }}
-                  className="w-full flex items-center justify-center px-3 py-3 bg-brand-primary text-white text-base font-medium rounded-lg hover:bg-blue-600 transition-all duration-200"
+                  className="w-full flex items-center justify-center px-3 py-3 bg-brand-primary dark:bg-blue-500 text-white text-base font-medium rounded-lg hover:bg-blue-600 dark:hover:bg-blue-600 transition-all duration-300 dark:shadow-glow-blue"
                 >
                   Get Started
                 </button>
               </div>
             ) : (
-              <div className="pt-4 border-t border-brand-gray-200 dark:border-gray-800 space-y-4">
+              <div className="pt-4 border-t border-brand-gray-200 dark:border-gray-700/50 space-y-4">
                 <div className="space-y-3">
                   {/* 🔔 Notifications for mobile */}
                   <div className="px-3">
                     <NotificationsBell />
                   </div>
-                  <div className="px-3">
-                    {user?.role === 'provider' && mounted && (
+                  {user?.role === 'provider' && mounted && (
+                    <div className="px-3">
                       <button
                         disabled={liveUpdating}
                         onClick={async ()=> { try { setLiveUpdating(true); await setAvailability(!user.isAvailable); } finally { setLiveUpdating(false); setMobileMenuOpen(false); } }}
-                        className={`w-full flex items-center justify-center px-3 py-2 mb-2 rounded-lg text-sm font-medium border ${user?.isAvailable ? 'bg-green-500 hover:bg-green-600 text-white border-green-600 dark:border-green-500' : 'bg-amber-500/90 hover:bg-amber-500 text-white border-amber-600 dark:border-amber-500'} disabled:opacity-60 disabled:cursor-not-allowed transition-colors`}
-                      >{user?.isAvailable ? '⚡ Live' : 'Go Live'}</button>
-                    )}
-                    {mounted && (
-                      <button
-                        onClick={()=> { setTheme(theme === 'dark' ? 'light':'dark'); setMobileMenuOpen(false); }}
-                        className="w-full flex items-center justify-center px-3 py-2 mb-2 rounded-lg text-sm font-medium bg-brand-gray-100 dark:bg-gray-800 text-brand-gray-600 dark:text-gray-300 hover:bg-brand-gray-200 dark:hover:bg-gray-700 transition-colors"
-                      >{theme === 'dark' ? '☀ Light Mode' : '🌙 Dark Mode'}</button>
-                    )}
-                  </div>
+                        className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold border shadow-sm transition-all duration-300 ${
+                          user?.isAvailable 
+                            ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-600 dark:border-green-500' 
+                            : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-600 dark:border-amber-500'
+                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                      >{user?.isAvailable ? '⚡ Live' : '🔴 Go Live'}</button>
+                    </div>
+                  )}
                 </div>
-                <div className="px-3 py-2">
-                  <div className="text-base font-medium text-brand-gray-900">{user.name}</div>
-                  <div className="text-sm text-brand-gray-500 capitalize">{user.role}</div>
+                <div className="px-3 py-3 mx-3 rounded-xl bg-brand-gray-50 dark:bg-gray-800/70 border border-brand-gray-200 dark:border-gray-700">
+                  <div className="text-base font-semibold text-brand-gray-900 dark:text-white">{user.name}</div>
+                  <div className="text-sm text-brand-gray-500 dark:text-gray-400 capitalize">{user.role}</div>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center px-3 py-3 text-base font-medium text-error hover:bg-error/10 rounded-lg transition-all duration-200"
+                  className="w-full flex items-center px-3 py-3 text-base font-medium text-error dark:text-red-400 hover:bg-error/10 dark:hover:bg-red-500/20 rounded-lg transition-all duration-300"
                 >
                   <FiLogOut className="w-5 h-5 mr-3" />
                   Sign Out

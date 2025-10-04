@@ -8,40 +8,53 @@
     box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    @apply transition-colors duration-300;
   }
   
   html {
     font-family: 'Inter', system-ui, sans-serif;
+    @apply bg-gray-50 text-gray-900;
+  }
+  
+  html.dark {
+    @apply bg-[#0f172a] text-gray-100;
   }
   
   html, body, #root {
     height: 100%;
     line-height: 1.6;
   }
+  
   body {
-    @apply bg-gray-100 text-slate-900 dark:bg-gray-900 dark:text-slate-100 transition-colors;
+    @apply bg-gray-50 text-gray-900 dark:bg-[#0f172a] dark:text-gray-100;
+  }
+  
+  /* Smooth gradient background for dark mode */
+  .dark body {
+    background: linear-gradient(to bottom, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    background-attachment: fixed;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-brand-primary hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary dark:focus:ring-offset-gray-900 transition-all duration-200 shadow-card hover:shadow-cardHover dark:shadow-none transform hover:-translate-y-0.5;
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-brand-primary hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary dark:focus:ring-offset-gray-900 transition-all duration-300 shadow-card hover:shadow-cardHover dark:shadow-glow-blue dark:hover:shadow-dark-glow transform hover:-translate-y-0.5;
   }
   
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-3 border border-brand-gray-300 dark:border-gray-600 text-base font-medium rounded-xl text-brand-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-brand-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 focus:ring-brand-primary transition-all duration-200 shadow-card hover:shadow-cardHover dark:shadow-none;
+    @apply inline-flex items-center justify-center px-6 py-3 border border-brand-gray-300 dark:border-gray-600 text-base font-medium rounded-xl text-brand-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-brand-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 focus:ring-brand-primary transition-all duration-300 shadow-card hover:shadow-cardHover dark:shadow-sm;
   }
   
   .btn-ghost {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg text-brand-gray-600 dark:text-gray-300 hover:text-brand-primary dark:hover:text-white hover:bg-brand-gray-50 dark:hover:bg-gray-800 transition-colors duration-200;
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg text-brand-gray-600 dark:text-gray-300 hover:text-brand-primary dark:hover:text-white hover:bg-brand-gray-50 dark:hover:bg-gray-800 transition-colors duration-300;
   }
   
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-xl2 shadow-card dark:shadow-none border border-brand-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-cardHover;
+    @apply bg-white dark:bg-brand-darkCard rounded-xl2 shadow-card dark:shadow-dark-card border border-brand-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-cardHover dark:hover:shadow-dark-glow;
   }
   
   .input-field {
-    @apply block w-full px-4 py-3 border border-brand-gray-300 dark:border-gray-600 rounded-xl text-brand-gray-900 dark:text-gray-100 placeholder-brand-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent dark:focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-200;
+    @apply block w-full px-4 py-3 border border-brand-gray-300 dark:border-gray-600 rounded-xl text-brand-gray-900 dark:text-gray-100 placeholder-brand-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent dark:focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all duration-300;
   }
   
   .status-tag {
@@ -49,11 +62,11 @@
   }
   
   .status-requested {
-    @apply status-tag bg-warning/10 text-warning border border-warning/20;
+    @apply status-tag bg-warning/10 text-warning border border-warning/20 dark:bg-warning/20 dark:border-warning/30;
   }
   
   .status-accepted {
-    @apply status-tag bg-success/10 text-success border border-success/20;
+    @apply status-tag bg-success/10 text-success border border-success/20 dark:bg-success/20 dark:border-success/30;
   }
   
   .status-completed {
@@ -61,10 +74,19 @@
   }
   
   .status-rejected {
-    @apply status-tag bg-error/10 text-error border border-error/20;
+    @apply status-tag bg-error/10 text-error border border-error/20 dark:bg-error/20 dark:border-error/30;
   }
   
   .glass-card {
-    @apply bg-white/80 dark:bg-gray-800/70 backdrop-blur-sm border border-white/20 dark:border-gray-700 shadow-glass dark:shadow-none;
+    @apply bg-white/80 dark:bg-gray-800/70 backdrop-blur-sm border border-white/20 dark:border-gray-700 shadow-glass dark:shadow-dark-card;
+  }
+  
+  /* Dark mode service card glow */
+  .dark .service-card {
+    box-shadow: 0 0 15px rgba(37, 99, 235, 0.2);
+  }
+  
+  .dark .service-card:hover {
+    box-shadow: 0 0 25px rgba(37, 99, 235, 0.35);
   }
 }
