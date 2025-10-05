@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FiSmile, FiZap, FiBriefcase, FiShoppingBag } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function WelcomePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [showToast, setShowToast] = React.useState(true);
 
   if (!user) {
     return (
@@ -21,10 +24,47 @@ export default function WelcomePage() {
   };
   const Icon = roleIcons[user.role] || FiSmile;
 
+  // ✅ Function to skip/continue to role dashboard
+  const handleContinue = () => {
+    if (user.role === "customer") navigate("/customer");
+    else if (user.role === "provider") navigate("/provider");
+    else if (user.role === "admin") navigate("/admin");
+    else navigate("/");
+  };
+
+  // ✅ Auto-hide toast after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => setShowToast(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-brand-light via-white to-blue-50 text-center px-6">
-      {/* Welcome Card */}
-      <div className="bg-white shadow-2xl rounded-3xl p-10 max-w-lg w-full animate-fade-in">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-brand-light via-white to-blue-50 text-center px-6 relative overflow-hidden">
+      {/* ✅ Animated Toast */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -40 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="fixed top-5 right-5 bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg rounded-2xl px-6 py-3 flex items-center space-x-3 z-50"
+          >
+            <FiSmile className="text-white text-xl" />
+            <span className="font-medium text-sm sm:text-base">
+              Welcome back, <span className="font-semibold">{user.name}</span> 👋
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ✅ Welcome Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 25 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="bg-white shadow-2xl rounded-3xl p-10 max-w-lg w-full"
+      >
         <div className="flex flex-col items-center space-y-6">
           {/* Icon */}
           <div className="w-20 h-20 bg-gradient-to-r from-brand-primary to-brand-secondary rounded-full flex items-center justify-center shadow-lg">
@@ -33,10 +73,11 @@ export default function WelcomePage() {
 
           {/* Welcome Text */}
           <h1 className="text-4xl font-bold text-brand-gray-900">
-            Welcome, <span className="text-brand-primary">{user.name}</span> 👋
+            Welcome,{" "}
+            <span className="text-brand-primary capitalize">{user.name}</span> 👋
           </h1>
           <p className="text-lg text-brand-gray-600">
-            You are logged in as a{" "}
+            You are logged in as{" "}
             <span className="capitalize font-medium text-brand-secondary">
               {user.role}
             </span>
@@ -70,12 +111,21 @@ export default function WelcomePage() {
               </Link>
             )}
           </div>
+
+          {/* Continue / Skip Button */}
+          <button
+            onClick={handleContinue}
+            className="mt-6 px-6 py-2 text-brand-primary font-medium rounded-full border border-brand-primary hover:bg-brand-primary hover:text-white transition-all duration-200"
+          >
+            Continue →
+          </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Footer */}
       <p className="mt-8 text-sm text-brand-gray-500">
-        Powered by <span className="text-brand-primary font-medium">LocalHands</span>
+        Powered by{" "}
+        <span className="text-brand-primary font-medium">LocalHands</span>
       </p>
     </div>
   );

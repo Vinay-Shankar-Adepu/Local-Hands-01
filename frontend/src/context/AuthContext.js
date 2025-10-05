@@ -11,7 +11,7 @@ const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);   // {id, name, email, role, verified}
+  const [user, setUser] = useState(null); // {id, name, email, role, verified}
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,12 +33,10 @@ export const AuthProvider = ({ children }) => {
         })
         .catch((err) => {
           console.warn("Session validation failed:", err.message);
-          // fallback: try cached user
           if (cachedUser) {
             try {
               setUser(JSON.parse(cachedUser));
-            } catch (e) {
-              console.error("Error parsing cached user:", e);
+            } catch {
               clearSession();
             }
           } else {
@@ -58,7 +56,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("lh_token", t);
     }
     if (u) {
-      setUser(u);
+      setUser(u); // ✅ ensures instant re-render
       localStorage.setItem("lh_user", JSON.stringify(u));
     }
   };
@@ -94,27 +92,23 @@ export const AuthProvider = ({ children }) => {
     const { data } = await API.post(
       "/auth/set-role",
       { role },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
-    // some APIs return only updated user, others return token+user
     saveSession(data.token || token, data.user);
     return data.user;
   };
 
   const logout = () => clearSession();
 
-  // Availability toggle (provider only)
+  // 🔹 Provider availability toggle
   const setAvailability = async (isAvailable) => {
-    const { data } = await API.patch('/providers/availability', { isAvailable });
-    // server returns { user }
+    const { data } = await API.patch("/providers/availability", { isAvailable });
     const merged = { ...user, ...data.user };
     saveSession(token, merged);
     return merged;
   };
 
-  // 🔹 Centralized redirect helper
+  // 🔹 Redirect helper
   const redirectAfterAuth = (u, nav) => {
     if (!u?.role) nav("/choose-role", { replace: true });
     else nav(`/${u.role}`, { replace: true });
@@ -135,7 +129,7 @@ export const AuthProvider = ({ children }) => {
       redirectAfterAuth,
       isAuthenticated: !!token,
       isAdmin: user?.role === "admin",
-      saveSession // expose for profile refresh if needed later
+      saveSession,
     }),
     [user, token, loading]
   );
