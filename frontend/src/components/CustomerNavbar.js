@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -8,185 +8,184 @@ import {
   FiLogOut,
   FiMenu,
   FiX,
-  FiShoppingBag,
   FiClock,
-  FiSettings,
   FiSun,
   FiMoon,
-  FiChevronDown,
 } from "react-icons/fi";
 import NotificationsBell from "./NotificationsBell";
+import { motion } from "framer-motion";
 
 export default function CustomerNavbar() {
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
   const { theme, setTheme } = useTheme();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const dropdownRef = useRef(null);
 
   useEffect(() => setMounted(true), []);
   const isActive = (path) => loc.pathname === path;
 
-  // Close dropdown outside click
-  useEffect(() => {
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
-        setDropdownOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  const navItems = [
+    { name: "Dashboard", path: "/customer", icon: FiHome },
+    { name: "History", path: "/customer/history", icon: FiClock },
+    { name: "Profile", path: "/profile", icon: FiUser },
+  ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-black/30">
+    <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-black/30 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
         {/* Logo */}
         <Link
           to="/customer"
-          className="flex items-center space-x-2 text-xl font-bold text-blue-600 dark:text-blue-400"
+          className="flex items-center space-x-2 text-xl font-bold text-blue-600 dark:text-blue-400 hover:scale-105 transition-transform duration-300"
         >
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center rounded-lg shadow">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center rounded-lg shadow-lg">
             LH
           </div>
           <span className="hidden sm:block">LocalHands</span>
         </Link>
 
-        {/* Desktop Links */}
-        <div className="hidden md:flex items-center space-x-2">
-          <Link
-            to="/customer"
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              isActive("/customer")
-                ? "bg-blue-600 text-white"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-            }`}
-          >
-            <FiHome className="inline mr-2" /> Dashboard
-          </Link>
-
-          <Link
-            to="/customer/history"
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              isActive("/customer/history")
-                ? "bg-blue-600 text-white"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-            }`}
-          >
-            <FiClock className="inline mr-2" /> History
-          </Link>
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center space-x-1">
+          {navItems.map((item, idx) => (
+            <motion.div
+              key={item.path}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1, duration: 0.3 }}
+            >
+              <Link
+                to={item.path}
+                className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                  isActive(item.path)
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                <item.icon className="w-4 h-4" />
+                {item.name}
+                {isActive(item.path) && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </Link>
+            </motion.div>
+          ))}
         </div>
 
         {/* Right Section */}
         <div className="hidden md:flex items-center gap-3">
           <NotificationsBell />
 
-          {/* Profile dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-md"
+          {/* Theme Toggle */}
+          {mounted && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Toggle theme"
             >
-              {user.name}
-              <FiChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  dropdownOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
+              {theme === "dark" ? (
+                <FiSun className="w-5 h-5 text-yellow-500" />
+              ) : (
+                <FiMoon className="w-5 h-5 text-gray-700" />
+              )}
+            </motion.button>
+          )}
 
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 overflow-hidden">
-                <Link
-                  to="/profile"
-                  onClick={() => setDropdownOpen(false)}
-                  className="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <FiUser className="mr-3" /> Profile
-                </Link>
-
-                <Link
-                  to="/change-password"
-                  onClick={() => setDropdownOpen(false)}
-                  className="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <FiSettings className="mr-3" /> Change Password
-                </Link>
-
-                {mounted && (
-                  <button
-                    onClick={() =>
-                      setTheme(theme === "dark" ? "light" : "dark")
-                    }
-                    className="flex items-center w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    {theme === "dark" ? (
-                      <>
-                        <FiSun className="mr-3" /> Light Mode
-                      </>
-                    ) : (
-                      <>
-                        <FiMoon className="mr-3" /> Dark Mode
-                      </>
-                    )}
-                  </button>
-                )}
-
-                <button
-                  onClick={() => {
-                    logout();
-                    nav("/");
-                  }}
-                  className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/40"
-                >
-                  <FiLogOut className="mr-3" /> Sign Out
-                </button>
-              </div>
-            )}
+          {/* User Info */}
+          <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="text-sm text-right">
+              <p className="font-semibold text-gray-900 dark:text-white">{user.name}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user.role}</p>
+            </div>
           </div>
+
+          {/* Sign Out */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              logout();
+              nav("/");
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-300"
+          >
+            <FiLogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </motion.button>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu Button */}
         <button
-          className="md:hidden"
+          className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           onClick={() => setMobileOpen(!mobileOpen)}
         >
           {mobileOpen ? <FiX size={22} /> : <FiMenu size={22} />}
         </button>
       </div>
 
+      {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-          <Link
-            to="/customer"
-            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/customer/history"
-            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            History
-          </Link>
-          <Link
-            to="/profile"
-            className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Profile
-          </Link>
-          <button
-            onClick={() => {
-              logout();
-              nav("/");
-            }}
-            className="block w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
-          >
-            Sign Out
-          </button>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg"
+        >
+          <div className="px-4 py-3 space-y-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                  isActive(item.path)
+                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.name}
+              </Link>
+            ))}
+            
+            {mounted && (
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                {theme === "dark" ? (
+                  <>
+                    <FiSun className="w-5 h-5" />
+                    Light Mode
+                  </>
+                ) : (
+                  <>
+                    <FiMoon className="w-5 h-5" />
+                    Dark Mode
+                  </>
+                )}
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                logout();
+                nav("/");
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            >
+              <FiLogOut className="w-5 h-5" />
+              Sign Out
+            </button>
+          </div>
+        </motion.div>
       )}
     </nav>
   );

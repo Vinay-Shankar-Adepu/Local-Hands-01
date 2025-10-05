@@ -28,10 +28,10 @@ export const getCustomerPublic = async (req, res) => {
     const { id } = req.params;
     const user = await User.findById(id).select("name phone address rating ratingCount role");
     if (!user) return res.status(404).json({ message: "Not found" });
-    const reviews = await Review.find({ customer: id, direction: 'provider_to_customer' })
+    const reviews = await Review.find({ customer: id, direction: 'provider_to_customer', isPublic: true })
       .sort('-createdAt')
       .limit(10)
-      .select('rating comment createdAt');
+      .select('rating comment optionalMessage workImages createdAt direction provider customer');
     const completedJobs = await Review.countDocuments({ customer: id, direction: 'provider_to_customer' });
     res.json({ user, stats: { completedJobs }, reviews });
   } catch (e) { res.status(500).json({ message: e.message }); }

@@ -5,15 +5,20 @@ import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
 const router = Router();
 
 // List services (basic filters: category, provider)
+// Public list of active services (excludes ones whose template is inactive)
 router.get("/", async (req, res) => {
   try {
     const { category, provider } = req.query;
     const q = {};
     if (category) q.category = category;
     if (provider) q.provider = provider;
-  const services = await Service.find(q).limit(100).sort("name").populate('provider','name rating ratingCount');
-    // debug: count services
-    // console.log("Services fetched:", services.length);
+    const servicesRaw = await Service.find(q)
+      .limit(200)
+      .sort("name")
+      .populate('provider','name rating ratingCount')
+      .populate('template','active');
+    // Filter out services whose template exists but is inactive
+    const services = servicesRaw.filter(s => !s.template || s.template.active !== false);
     res.json({ services });
   } catch (e) {
     res.status(500).json({ message: e.message });

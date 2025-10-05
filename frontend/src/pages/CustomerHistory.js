@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
 import { FiCalendar, FiCheck, FiX, FiStar } from "react-icons/fi";
-import RatingModal from "../components/RatingModal";
+// Migrated from legacy RatingModal to EnhancedRatingModal with hidden review + optional message + image support
+import EnhancedRatingModal from "../components/EnhancedRatingModal";
 import { RatingsAPI } from "../services/api.extras";
+import ReviewCard from "../components/ReviewCard";
 
 export default function CustomerHistory() {
   const [bookings, setBookings] = useState([]);
@@ -10,6 +12,7 @@ export default function CustomerHistory() {
   const [error, setError] = useState("");
   const [rateFor, setRateFor] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // For provider profile reviews shown in modal (if desired later)
   const [providerProfile, setProviderProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
 
@@ -128,23 +131,34 @@ export default function CustomerHistory() {
         </div>
       )}
 
-      <RatingModal
+      <EnhancedRatingModal
         open={!!rateFor}
         onClose={() => setRateFor(null)}
         title="Rate your provider"
         submitting={submitting}
-        onSubmit={async ({ rating, comment }) => {
+        userRole="customer"
+        otherPartyName={rateFor?.provider?.name || 'Provider'}
+        otherPartyRating={rateFor?.providerAvgRating || rateFor?.provider?.rating || null}
+        otherPartyReviews={[]}
+        showImageUpload={true}
+        onSubmit={async ({ rating, comment, optionalMessage, workImages }) => {
           if (!rateFor) return;
-          try {
-            setSubmitting(true);
-            await RatingsAPI.rateProvider({ bookingId: rateFor._id, rating, comment });
-            setRateFor(null);
-            load();
-          } catch {
-            alert("Failed to submit rating. Please try again.");
-          } finally {
-            setSubmitting(false);
-          }
+            try {
+              setSubmitting(true);
+              await RatingsAPI.rateProvider({ 
+                bookingId: rateFor._id, 
+                rating, 
+                comment, 
+                optionalMessage, 
+                workImages 
+              });
+              setRateFor(null);
+              load();
+            } catch (e) {
+              alert("Failed to submit rating. Please try again.");
+            } finally {
+              setSubmitting(false);
+            }
         }}
       />
       {providerProfile && (
@@ -158,14 +172,11 @@ export default function CustomerHistory() {
               <div className='px-3 py-2 bg-yellow-500/10 rounded-lg text-sm'>⭐ {providerProfile.provider.rating?.toFixed?.(1) || 0} ({providerProfile.provider.ratingCount || 0})</div>
               <div className='text-sm text-brand-gray-600'>Completed jobs: {providerProfile.stats.completedJobs}</div>
             </div>
-            <h4 className='font-medium mb-2'>Recent Reviews</h4>
-            <div className='space-y-3 max-h-60 overflow-auto pr-2'>
+            <h4 className='font-medium mb-2'>Recent Public Feedback</h4>
+            <div className='space-y-4 max-h-72 overflow-auto pr-2'>
               {providerProfile.reviews.length === 0 && <p className='text-xs text-brand-gray-500'>No reviews yet.</p>}
               {providerProfile.reviews.map((r,i)=>(
-                <div key={i} className='p-3 border rounded-lg text-sm'>
-                  <div className='font-medium mb-1'>{'⭐'.repeat(r.rating)} <span className='text-xs text-brand-gray-500'>{new Date(r.createdAt).toLocaleDateString()}</span></div>
-                  {r.comment && <p className='text-brand-gray-600 text-xs'>{r.comment}</p>}
-                </div>
+                <ReviewCard key={i} review={{...r, customer: { name: 'Customer' }, provider: providerProfile.provider }} currentUserId={providerProfile.provider._id} viewMode="profile" />
               ))}
             </div>
           </div>

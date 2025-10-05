@@ -17,11 +17,20 @@ router.post("/:bookingId", requireAuth, requireRole("customer"), async (req, res
     if (booking.customer.toString() !== req.userId) return res.status(403).json({ message: "Not your booking" });
     if (booking.status !== "completed") return res.status(400).json({ message: "Booking not completed" });
 
-    const exists = await Review.findOne({ booking: booking._id });
+    const exists = await Review.findOne({ booking: booking._id, direction: "customer_to_provider" });
     if (exists) return res.status(400).json({ message: "Already reviewed" });
 
     const providerId = booking.provider;
     const review = await Review.create({ booking: booking._id, customer: req.userId, provider: providerId, rating, comment, direction: "customer_to_provider" });
+
+    // Update booking review status
+    booking.customerReviewed = true;
+    if (booking.providerReviewed) {
+      booking.reviewStatus = "fully_closed";
+    } else {
+      booking.reviewStatus = "both_pending"; // Now provider needs to review
+    }
+    await booking.save();
 
     // Properly update provider aggregate rating (average)
     const prov = await User.findById(providerId).select("rating ratingCount");
@@ -32,7 +41,7 @@ router.post("/:bookingId", requireAuth, requireRole("customer"), async (req, res
       await prov.save();
     }
 
-    res.status(201).json({ review });
+    res.status(201).json({ review, reviewStatus: booking.reviewStatus, triggerProviderReview: !booking.providerReviewed });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
@@ -44,6 +53,55 @@ router.get("/provider/:providerId", async (req, res) => {
     const { providerId } = req.params;
     const reviews = await Review.find({ provider: providerId }).sort("-createdAt");
     res.json({ reviews });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// Provider rates customer after completion
+router.post("/provider/:bookingId", requireAuth, requireRole("provider"), async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { rating, comment = "" } = req.body;
+    if (!rating) return res.status(400).json({ message: "rating required" });
+    
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+    if (!booking.provider || booking.provider.toString() !== req.userId) return res.status(403).json({ message: "Not your booking" });
+    if (booking.status !== "completed") return res.status(400).json({ message: "Booking not completed" });
+
+    const exists = await Review.findOne({ booking: booking._id, direction: "provider_to_customer" });
+    if (exists) return res.status(400).json({ message: "Already reviewed" });
+
+    const customerId = booking.customer;
+    const review = await Review.create({ 
+      booking: booking._id, 
+      customer: customerId, 
+      provider: req.userId, 
+      rating, 
+      comment, 
+      direction: "provider_to_customer" 
+    });
+
+    // Update booking review status
+    booking.providerReviewed = true;
+    if (booking.customerReviewed) {
+      booking.reviewStatus = "fully_closed";
+    } else {
+      booking.reviewStatus = "both_pending"; // Customer still needs to review
+    }
+    await booking.save();
+
+    // Update customer aggregate rating
+    const customer = await User.findById(customerId).select("rating ratingCount");
+    if (customer) {
+      const total = customer.rating * customer.ratingCount + rating;
+      customer.ratingCount += 1;
+      customer.rating = total / customer.ratingCount;
+      await customer.save();
+    }
+
+    res.status(201).json({ review, reviewStatus: booking.reviewStatus });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }

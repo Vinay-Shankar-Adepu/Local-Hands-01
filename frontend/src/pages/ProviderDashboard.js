@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import API from '../services/api';
-import { FiClock, FiZap, FiCheck, FiX } from 'react-icons/fi';
+import { FiClock, FiZap, FiCheck, FiX, FiBriefcase } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import ServiceSelectionModal from '../components/ServiceSelectionModal';
 
 export default function ProviderDashboard() {
   const [offers, setOffers] = useState([]); // pending offers
@@ -12,6 +13,7 @@ export default function ProviderDashboard() {
   const { theme, setTheme } = useTheme();
   const { user, setAvailability } = useAuth();
   const [liveUpdating, setLiveUpdating] = useState(false);
+  const [showServiceModal, setShowServiceModal] = useState(false);
 
   const fetchOffers = async () => {
     try {
@@ -53,6 +55,13 @@ export default function ProviderDashboard() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage live requests and performance</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowServiceModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/60 transition-colors"
+          >
+            <FiBriefcase className="w-4 h-4" />
+            Manage Services
+          </button>
           <button
             onClick={()=> setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -130,6 +139,16 @@ export default function ProviderDashboard() {
           })}
         </div>
       </section>
+
+      {/* Service Selection Modal */}
+      <ServiceSelectionModal
+        isOpen={showServiceModal}
+        onClose={() => setShowServiceModal(false)}
+        onComplete={() => {
+          setShowServiceModal(false);
+          // Optionally refresh something
+        }}
+      />
     </div>
   );
 }

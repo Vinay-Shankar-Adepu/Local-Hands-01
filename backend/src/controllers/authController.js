@@ -170,3 +170,48 @@ export const me = async (req, res) => {
     res.status(500).json({ message: e.message });
   }
 };
+
+// 🔹 Change Password
+export const changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: "Please provide both old and new passwords" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if user has a password (not Google-only)
+    if (!user.password) {
+      return res.status(400).json({ 
+        message: "Cannot change password for Google sign-in accounts. Please use Google to manage your password." 
+      });
+    }
+
+    // Verify old password
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    // Hash new password
+    const hash = await bcrypt.hash(newPassword, 10);
+    user.password = hash;
+    await user.save();
+
+    res.json({ 
+      message: "Password updated successfully",
+      success: true 
+    });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};

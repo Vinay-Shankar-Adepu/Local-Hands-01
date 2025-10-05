@@ -22,11 +22,18 @@ router.get("/nearby", nearbyProviders);
 router.get('/:id/profile', async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await User.findById(id).select('name rating ratingCount role');
+    const user = await User.findById(id).select('name rating ratingCount role completedJobs');
     if (!user || user.role !== 'provider') return res.status(404).json({ message: 'Provider not found' });
     const completedJobs = await Booking.countDocuments({ provider: id, status: 'completed' });
-    const recentReviews = await Review.find({ provider: id, direction: 'customer_to_provider' }).sort('-createdAt').limit(10).select('rating comment createdAt');
-    res.json({ provider: user, stats: { completedJobs }, reviews: recentReviews });
+    const recentReviews = await Review.find({ provider: id, direction: 'customer_to_provider', isPublic: true })
+      .sort('-createdAt')
+      .limit(10)
+      .select('rating comment optionalMessage workImages createdAt direction customer provider');
+    // Provider services (only active templates)
+    const servicesRaw = await Service.find({ provider: id }).populate('template','active');
+    const services = servicesRaw.filter(s=> !s.template || s.template.active !== false)
+      .map(s=> ({ _id: s._id, name: s.name, price: s.price, category: s.category }));
+    res.json({ provider: user, stats: { completedJobs }, reviews: recentReviews, services });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 

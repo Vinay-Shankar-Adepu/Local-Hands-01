@@ -12,10 +12,19 @@ const bookingSchema = new mongoose.Schema(
     // Ratings given after completion
     customerRating: { type: Number, min: 1, max: 5 }, // rating customer gave provider
     providerRating: { type: Number, min: 1, max: 5 }, // rating provider gave customer
+    
+    // Review tracking for automatic rating flow
+    customerReviewed: { type: Boolean, default: false },
+    providerReviewed: { type: Boolean, default: false },
+    reviewStatus: { 
+      type: String, 
+      enum: ["none", "customer_pending", "provider_pending", "both_pending", "fully_closed"], 
+      default: "none" 
+    },
 
     status: {
       type: String,
-      enum: ["requested", "accepted", "rejected", "completed", "cancelled"],
+      enum: ["requested", "accepted", "in_progress", "rejected", "completed", "cancelled"],
       default: "requested"
     },
 

@@ -153,9 +153,10 @@ export const acceptOffer = async (req,res)=>{
     const pending = booking.offers.find(o=>o.status==='pending');
     if(!pending || pending.provider.toString() !== req.userId) return res.status(403).json({ message: 'No active offer for you' });
     // Assign
-    pending.status = 'accepted';
-    pending.respondedAt = new Date();
-    booking.status = 'accepted';
+  pending.status = 'accepted'; // offer itself marked accepted
+  pending.respondedAt = new Date();
+  // Immediately move booking into in_progress (was previously 'accepted') so provider can mark complete
+  booking.status = 'in_progress';
     booking.provider = pending.provider;
     booking.acceptedAt = new Date();
     booking.pendingProviders = [];
@@ -267,7 +268,7 @@ export const acceptBooking = async (req, res) => {
       }
       pending.status = 'accepted';
       pending.respondedAt = new Date();
-      booking.status = 'accepted';
+  booking.status = 'in_progress';
       booking.provider = pending.provider;
       booking.acceptedAt = new Date();
       booking.pendingProviders = [];
@@ -281,7 +282,7 @@ export const acceptBooking = async (req, res) => {
     if (booking.provider && booking.provider.toString() !== provider._id.toString()) {
       return res.status(403).json({ message: "You are not the owner provider for this service" });
     }
-    booking.status = "accepted";
+  booking.status = "in_progress";
     booking.provider = provider._id;
     booking.acceptedAt = new Date();
     await booking.save();
@@ -336,16 +337,20 @@ export const completeBooking = async (req, res) => {
     const { id } = req.params;
     const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ message: "Not found" });
-    if (booking.status !== "accepted") return res.status(400).json({ message: "Only accepted bookings can be completed" });
+    // Allow legacy 'accepted' (from older releases) OR modern 'in_progress'
+    if (!['in_progress','accepted'].includes(booking.status)) {
+      return res.status(400).json({ message: "Only in_progress bookings can be completed" });
+    }
     if (!booking.provider || booking.provider.toString() !== req.userId) return res.status(403).json({ message: "Not your booking" });
     booking.status = "completed";
     booking.completedAt = new Date();
+    booking.reviewStatus = "provider_pending"; // Customer needs to review first
     await booking.save();
     // increment provider completedJobs counter (denormalized experience metric)
     if(booking.provider){
       await User.findByIdAndUpdate(booking.provider, { $inc: { completedJobs: 1 } });
     }
-    res.json({ booking });
+    res.json({ booking, needsReview: true, reviewerRole: "provider", waitingFor: "customer" });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
@@ -356,12 +361,31 @@ export const cancelBooking = async (req, res) => {
     const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ message: "Not found" });
     if (booking.customer.toString() !== req.userId) return res.status(403).json({ message: "Not your booking" });
-    if (!["requested", "accepted"].includes(booking.status)) return res.status(400).json({ message: "Cannot cancel at this stage" });
+  if (!["requested", "in_progress", "accepted"].includes(booking.status)) return res.status(400).json({ message: "Cannot cancel at this stage" });
     booking.status = "cancelled";
     booking.cancelledAt = new Date();
     await booking.save();
     res.json({ booking });
   } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
+// Customer marks booking completed (alternative flow) if provider already accepted
+export const customerCompleteBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const booking = await Booking.findById(id);
+    if(!booking) return res.status(404).json({ message: 'Not found' });
+    if(booking.customer.toString() !== req.userId) return res.status(403).json({ message: 'Not your booking' });
+    if(booking.status !== 'in_progress') return res.status(400).json({ message: 'Only in_progress bookings can be completed' });
+    booking.status = 'completed';
+    booking.completedAt = new Date();
+    booking.reviewStatus = 'customer_pending'; // Provider needs to review first
+    await booking.save();
+    if(booking.provider){
+      await User.findByIdAndUpdate(booking.provider, { $inc: { completedJobs: 1 } });
+    }
+    res.json({ booking, completedBy: 'customer', needsReview: true, reviewerRole: 'customer', waitingFor: 'provider' });
+  } catch(e){ res.status(500).json({ message: e.message }); }
 };
 
 // List bookings for current user (role-aware)
@@ -426,6 +450,37 @@ export const myBookings = async (req, res) => {
         return res.json({ bookings: enriched });
     }
     return res.status(400).json({ message: "Unsupported role" });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
+// Get pending job count for provider
+export const getPendingCount = async (req, res) => {
+  try {
+    const providerId = req.userId;
+    
+    // Count bookings where:
+    // 1. Status is 'requested' or 'pending_offers'
+    // 2. Provider has a pending offer OR is assigned provider
+    const bookings = await Booking.find({
+      status: { $in: ['requested', 'pending_offers'] }
+    }).populate('service', 'provider');
+
+    const count = bookings.filter(b => {
+      // If directly assigned to this provider
+      if (b.provider && b.provider.toString() === providerId) return true;
+      // If service owner (legacy)
+      const serviceOwner = b.service && b.service.provider && b.service.provider.toString();
+      if (!b.provider && serviceOwner === providerId) return true;
+      // If has a pending offer
+      if (b.offers && b.offers.some(o => 
+        o.provider && o.provider.toString() === providerId && o.status === 'pending'
+      )) return true;
+      return false;
+    }).length;
+
+    res.json({ count });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }

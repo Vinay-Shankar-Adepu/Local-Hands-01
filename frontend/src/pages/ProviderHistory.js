@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
 import { FiUser, FiCalendar, FiCheck, FiX, FiStar } from "react-icons/fi";
-import RatingModal from "../components/RatingModal";
+import ReviewCard from "../components/ReviewCard";
+// Switched to EnhancedRatingModal (hidden review + optional message). Providers do not upload images.
+import EnhancedRatingModal from "../components/EnhancedRatingModal";
 import { RatingsAPI } from "../services/api.extras";
 
 export default function ProviderHistory() {
@@ -9,6 +11,8 @@ export default function ProviderHistory() {
   const [loading, setLoading] = useState(true);
   const [rateFor, setRateFor] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [customerProfile, setCustomerProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -74,7 +78,23 @@ export default function ProviderHistory() {
 
                 <div className="mt-3 flex items-center gap-2 text-sm">
                   <FiUser className="text-gray-400" />
-                  <span>Customer: {b.customer?.name || "Unknown"}</span>
+                  <span>
+                    Customer: {b.customer?.name || "Unknown"}
+                    {b.customer?._id && (
+                      <button
+                        onClick={async () => {
+                          setLoadingProfile(true);
+                          try {
+                            const { data } = await API.get(`/users/customer/${b.customer._id}`);
+                            setCustomerProfile(data);
+                          } catch {
+                            alert('Failed to load customer profile');
+                          } finally { setLoadingProfile(false); }
+                        }}
+                        className="ml-2 text-xs text-blue-600 dark:text-blue-400 underline hover:text-blue-700"
+                      >View</button>
+                    )}
+                  </span>
                 </div>
 
                 <div className="mt-4 flex items-center justify-between">
@@ -101,12 +121,17 @@ export default function ProviderHistory() {
           </div>
         )}
 
-        <RatingModal
+        <EnhancedRatingModal
           open={!!rateFor}
           title="Rate your customer"
+            userRole="provider"
+            otherPartyName={rateFor?.customer?.name || 'Customer'}
+            otherPartyRating={rateFor?.customerAvgRating || rateFor?.customer?.rating || null}
+            otherPartyReviews={[]}
           onClose={() => setRateFor(null)}
           submitting={submitting}
-          onSubmit={async ({ rating, comment }) => {
+          showImageUpload={false}
+          onSubmit={async ({ rating, comment, optionalMessage }) => {
             if (!rateFor) return;
             try {
               setSubmitting(true);
@@ -114,6 +139,7 @@ export default function ProviderHistory() {
                 bookingId: rateFor._id,
                 rating,
                 comment,
+                optionalMessage,
               });
               setRateFor(null);
               window.location.reload();
@@ -124,6 +150,27 @@ export default function ProviderHistory() {
             }
           }}
         />
+        {customerProfile && (
+          <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4' onClick={()=>setCustomerProfile(null)}>
+            <div className='bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg p-6 shadow-xl dark:shadow-dark-glow border border-gray-700' onClick={e=>e.stopPropagation()}>
+              <div className='flex items-center justify-between mb-4'>
+                <h3 className='text-xl font-semibold text-gray-900 dark:text-white'>{customerProfile.user.name}</h3>
+                <button onClick={()=>setCustomerProfile(null)} className='text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'>Close</button>
+              </div>
+              <div className='flex items-center gap-4 mb-4'>
+                <div className='px-3 py-2 bg-yellow-500/10 rounded-lg text-sm'>⭐ {customerProfile.user.rating?.toFixed?.(1) || 0} ({customerProfile.user.ratingCount || 0})</div>
+                <div className='text-sm text-gray-600 dark:text-gray-400'>Provider-reviewed jobs: {customerProfile.stats.completedJobs}</div>
+              </div>
+              <h4 className='font-medium text-gray-900 dark:text-white mb-2'>Recent Feedback</h4>
+              <div className='space-y-3 max-h-72 overflow-auto pr-2'>
+                {customerProfile.reviews.length === 0 && <p className='text-xs text-gray-500'>No reviews yet.</p>}
+                {customerProfile.reviews.map((r,i)=>(
+                  <ReviewCard key={i} review={{...r, provider: { name: 'You' }, customer: customerProfile.user }} currentUserId={customerProfile.user._id} viewMode="profile" />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -16,7 +16,27 @@ router.delete('/categories/:id', async (req,res)=>{ try { const { id } = req.par
 // Service Templates CRUD
 router.post('/templates', async (req,res)=>{ try { const { name, category, defaultPrice=0 } = req.body; if(!name || !category) return res.status(400).json({message:'name & category required'}); const tpl = await ServiceTemplate.create({ name, category, defaultPrice }); res.status(201).json({ template: tpl }); } catch(e){ res.status(500).json({ message: e.message }); }});
 router.get('/templates', async (req,res)=>{ try { const { category } = req.query; const q = { active: true }; if(category) q.category = category; const tpls = await ServiceTemplate.find(q).populate('category','name'); res.json({ templates: tpls }); } catch(e){ res.status(500).json({ message: e.message }); }});
-router.patch('/templates/:id', async (req,res)=>{ try { const { id } = req.params; const { name, defaultPrice, active } = req.body; const update = {}; if(name) update.name = name; if(defaultPrice!=null) update.defaultPrice = defaultPrice; if(active!==undefined) update.active = active; const tpl = await ServiceTemplate.findByIdAndUpdate(id, update, { new: true }); if(!tpl) return res.status(404).json({ message: 'Not found' }); res.json({ template: tpl }); } catch(e){ res.status(500).json({ message: e.message }); }});
+// Update template with optional propagation to existing provider services
+router.patch('/templates/:id', async (req,res)=>{ 
+	try { 
+		const { id } = req.params; 
+		const { name, defaultPrice, active, propagate } = req.body; 
+		const update = {}; 
+		const nameChanged = !!name; 
+		if(name) update.name = name; 
+		if(defaultPrice!=null) update.defaultPrice = defaultPrice; 
+		if(active!==undefined) update.active = active; 
+		const tpl = await ServiceTemplate.findByIdAndUpdate(id, update, { new: true }); 
+		if(!tpl) return res.status(404).json({ message: 'Not found' }); 
+		// If name changed & propagate flag set, update all services referencing this template
+		if (propagate && nameChanged) {
+			const Service = (await import('../models/Service.js')).default;
+			await Service.updateMany({ template: id }, { $set: { name: tpl.name } });
+		}
+		// If template deactivated, no immediate deletion, filtering handles invisibility.
+		res.json({ template: tpl, propagated: !!(propagate && nameChanged) }); 
+	} catch(e){ res.status(500).json({ message: e.message }); }
+});
 router.delete('/templates/:id', async (req,res)=>{ try { const { id } = req.params; await ServiceTemplate.findByIdAndDelete(id); res.json({ success: true }); } catch(e){ res.status(500).json({ message: e.message }); }});
 
 export default router;

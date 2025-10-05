@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import API from "../services/api";
-import RatingModal from "../components/RatingModal";
+import EnhancedRatingModal from "../components/EnhancedRatingModal";
+import WaitingScreen from "../components/WaitingScreen";
 import { RatingsAPI } from "../services/api.extras";
 import ServiceCard from "../components/ServiceCard";
 import {
@@ -48,9 +49,26 @@ export default function CustomerHome() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [providerSelect, setProviderSelect] = useState({ open: false, aggregate: null });
+  const [waitingBooking, setWaitingBooking] = useState(null); // bookingId while waiting for acceptance
 
   const loadBookings = () => {
-    API.get("/bookings/mine").then((r) => setMyBookings(r.data.bookings || []));
+    API.get("/bookings/mine").then((r) => {
+      const bookings = r.data.bookings || [];
+      setMyBookings(bookings);
+      
+      // Auto-trigger rating modal for newly completed bookings
+      const needsCustomerReview = bookings.find(
+        b => b.status === "completed" && 
+        b.reviewStatus === "provider_pending" && 
+        !b.customerReviewed && 
+        !rateTarget
+      );
+      
+      if (needsCustomerReview) {
+        // Auto-show rating modal for customer
+        setTimeout(() => setRateTarget(needsCustomerReview), 500);
+      }
+    });
   };
 
   // ✅ Get user location
@@ -115,6 +133,35 @@ export default function CustomerHome() {
   const filteredAggregated = useMemo(() => {
     return aggregated.filter(a => (activeCategory === 'all' || a.category === activeCategory) && (!searchTerm || a.name.toLowerCase().includes(searchTerm.toLowerCase())));
   }, [aggregated, activeCategory, searchTerm]);
+
+  // ✅ Poll booking status while waiting for provider acceptance
+  useEffect(() => {
+    if (!waitingBooking) return;
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await API.get("/bookings/mine");
+        const booking = res.data.bookings?.find(b => b._id === waitingBooking);
+        
+        if (booking && booking.status !== "requested") {
+          // Provider has responded
+          setWaitingBooking(null);
+          loadBookings();
+          
+          if (booking.status === "in_progress" || booking.status === "accepted") {
+            // Show success message
+            alert("🎉 Your booking has been accepted! The provider will contact you soon.");
+          } else if (booking.status === "rejected") {
+            alert("❌ Unfortunately, this booking was declined. Please try another provider.");
+          }
+        }
+      } catch (error) {
+        console.error("Error polling booking status:", error);
+      }
+    }, 3000); // Poll every 3 seconds
+    
+    return () => clearInterval(pollInterval);
+  }, [waitingBooking]);
 
   const openBook = (aggregate) => {
     if (!aggregate) return;
@@ -200,7 +247,6 @@ export default function CustomerHome() {
                   placeholder="Search services..."
                   className="w-full md:w-80 px-4 py-2.5 rounded-xl border border-brand-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-primary dark:focus:ring-blue-500 focus:border-transparent text-sm bg-white dark:bg-gray-800 text-brand-gray-900 dark:text-gray-100 placeholder-brand-gray-400 dark:placeholder-gray-500 transition-all duration-300"
                 />
-                <div className="text-xs text-brand-gray-500 dark:text-gray-400 bg-brand-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">Showing {filteredAggregated.length} result(s)</div>
               </div>
             </div>
           )}
@@ -230,44 +276,32 @@ export default function CustomerHome() {
           )}
 
           {!loading && !error && (
-            (() => {
-              if(filteredAggregated.length === 0) {
-                return <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl2 border border-brand-gray-200 dark:border-gray-700 text-sm text-brand-gray-600 dark:text-gray-400">No services match your filters.</div>;
-              }
-              const categories = activeCategory === 'all' ? Array.from(new Set(filteredAggregated.map(s=>s.category))) : [activeCategory];
-              return (
-                <div className="space-y-10">
-                  {categories.map(cat => {
-                    const catAggs = filteredAggregated.filter(a=>a.category === cat);
-                    return (
-                      <div key={cat} id={cat.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-brand-gray-900 dark:text-white">{cat}</h3>
-                          <span className="text-xs text-brand-gray-500 dark:text-gray-400">{catAggs.length} service{catAggs.length!==1 && 's'}</span>
-                        </div>
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {catAggs.map(a => {
-                            const display = a.services[0];
-                            return (
-                              <div key={a.key} className="relative group">
-                                {a.providerCount>1 && (
-                                  <div className="absolute top-2 right-2 z-10 text-[10px] bg-brand-primary dark:bg-blue-500 text-white px-2 py-0.5 rounded-full shadow-sm dark:shadow-glow-blue transition-all duration-300">{a.providerCount} providers</div>
-                                )}
-                                <ServiceCard
-                                  service={display}
-                                  onBook={() => openBook(a)}
-                                  variant="compact"
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {services
+                .filter(s => {
+                  const matchesCategory = activeCategory === 'all' || s.category === activeCategory;
+                  const matchesSearch = !searchTerm || s.name.toLowerCase().includes(searchTerm.toLowerCase());
+                  return matchesCategory && matchesSearch;
+                })
+                .map(service => (
+                  <ServiceCard
+                    key={service._id}
+                    service={service}
+                    onBook={() => setBookingModal({ open: true, service })}
+                    variant="compact"
+                  />
+                ))}
+            </div>
+          )}
+
+          {!loading && !error && services.filter(s => {
+            const matchesCategory = activeCategory === 'all' || s.category === activeCategory;
+            const matchesSearch = !searchTerm || s.name.toLowerCase().includes(searchTerm.toLowerCase());
+            return matchesCategory && matchesSearch;
+          }).length === 0 && (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl2 border border-brand-gray-200 dark:border-gray-700 text-sm text-brand-gray-600 dark:text-gray-400">
+              No services match your filters.
+            </div>
           )}
         </section>
 
@@ -360,28 +394,19 @@ export default function CustomerHome() {
                     setBookingLoading(true);
                     setBookingMsg("");
                     try {
-                      if(bookingModal.service?._multi && bookingModal.service?._aggregateTemplate){
-                        await API.post('/bookings/create-multi', {
-                          templateId: bookingModal.service._aggregateTemplate,
-                          lng: location.lng,
-                          lat: location.lat,
-                          scheduledAt,
-                        });
-                        setBookingMsg('Request sent. The best available provider will be assigned shortly.');
-                      } else {
-                        await API.post("/bookings/create", {
-                          serviceId: bookingModal.service._id,
-                          lng: location.lng,
-                          lat: location.lat,
-                          scheduledAt,
-                        });
-                        setBookingMsg("Booking requested successfully!");
-                      }
+                      const response = await API.post("/bookings/create", {
+                        serviceId: bookingModal.service._id,
+                        lng: location.lng,
+                        lat: location.lat,
+                        scheduledAt,
+                      });
+                      setBookingMsg("Booking requested successfully!");
                       loadBookings();
-                      setTimeout(
-                        () => setBookingModal({ open: false, service: null }),
-                        2000
-                      );
+                      // Show waiting screen instead of closing modal immediately
+                      setTimeout(() => {
+                        setBookingModal({ open: false, service: null });
+                        setWaitingBooking(response.data.booking._id);
+                      }, 1000);
                     } catch (er) {
                       setBookingMsg(
                         er?.response?.data?.message || "Failed to create booking"
@@ -467,7 +492,7 @@ export default function CustomerHome() {
                 <div key={b._id} className="bg-white dark:bg-gray-800 rounded-xl border border-brand-gray-200 dark:border-gray-700 shadow-card dark:shadow-dark-card hover:border-brand-primary dark:hover:border-blue-500 dark:hover:shadow-dark-glow p-6 transition-all duration-300">
                   <div className="flex flex-col md:flex-row md:items-center gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <h3 className="font-semibold text-brand-gray-900 dark:text-gray-100">
                           #{b.bookingId}
                         </h3>
@@ -487,6 +512,20 @@ export default function CustomerHome() {
                           )}
                           {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
                         </span>
+                        
+                        {/* Review Status Badge */}
+                        {b.status === "completed" && b.reviewStatus === "fully_closed" && (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700">
+                            <FiCheck className="w-3 h-3 mr-1" />
+                            Fully Closed
+                          </span>
+                        )}
+                        {b.status === "completed" && b.reviewStatus === "provider_pending" && !b.customerReviewed && (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-700">
+                            <FiStar className="w-3 h-3 mr-1" />
+                            Please Review
+                          </span>
+                        )}
                       </div>
 
                       <p className="text-brand-gray-700 dark:text-gray-300 font-medium mb-1">
@@ -565,21 +604,50 @@ export default function CustomerHome() {
             </div>
           </div>
         )}
-        <RatingModal
+        <EnhancedRatingModal
           open={!!rateTarget}
           onClose={()=>setRateTarget(null)}
           title='Rate this provider'
           submitting={submittingRating}
-          onSubmit={async ({ rating, comment }) => {
+          userRole="customer"
+          otherPartyName={rateTarget?.provider?.name || "the provider"}
+          otherPartyRating={rateTarget?.provider?.rating || 0}
+          otherPartyReviews={providerProfile?.reviews || []}
+          showImageUpload={true}
+          onSubmit={async ({ rating, comment, optionalMessage, workImages }) => {
             if(!rateTarget) return;
             try {
               setSubmittingRating(true);
-              await RatingsAPI.rateProvider({ bookingId: rateTarget._id, rating, comment });
+              const response = await RatingsAPI.rateProvider({ 
+                bookingId: rateTarget._id, 
+                rating, 
+                comment,
+                optionalMessage,
+                workImages 
+              });
               setRateTarget(null);
+              
+              // Show success message based on review status
+              if (response.data.triggerProviderReview) {
+                alert("✅ Thank you for your review! The provider will now be prompted to rate you.");
+              } else {
+                alert("✅ Thank you for your review! Service is now fully closed.");
+              }
+              
               loadBookings();
             } catch(e){
               alert(e?.response?.data?.message || 'Failed to submit rating. Please try again.');
             } finally { setSubmittingRating(false); }
+          }}
+        />
+
+        {/* ✅ Waiting Screen - Show while provider accepts booking */}
+        <WaitingScreen
+          isOpen={!!waitingBooking}
+          bookingId={waitingBooking}
+          onAccepted={() => {
+            setWaitingBooking(null);
+            loadBookings();
           }}
         />
       </div>

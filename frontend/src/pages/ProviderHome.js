@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
-import RatingModal from "../components/RatingModal";
+import EnhancedRatingModal from "../components/EnhancedRatingModal";
 import { RatingsAPI } from "../services/api.extras";
 import {
   FiBriefcase,
@@ -43,7 +43,23 @@ export default function ProviderHome() {
 
   const loadBookings = () => {
     API.get("/bookings/mine")
-      .then((r) => setBookings(r.data.bookings || []))
+      .then((r) => {
+        const bookings = r.data.bookings || [];
+        setBookings(bookings);
+        
+        // Auto-trigger rating modal for provider when customer has reviewed
+        const needsProviderReview = bookings.find(
+          b => b.status === "completed" && 
+          (b.reviewStatus === "both_pending" || b.reviewStatus === "customer_pending") && 
+          !b.providerReviewed && 
+          !rateTarget
+        );
+        
+        if (needsProviderReview) {
+          // Auto-show rating modal for provider
+          setTimeout(() => setRateTarget(needsProviderReview), 500);
+        }
+      })
       .catch(() => {});
   };
 
@@ -170,22 +186,37 @@ export default function ProviderHome() {
                 // Exclude:
                 //  - any booking where this provider already declined its offer (providerOfferStatus === 'declined')
                 //  - any booking with status rejected/cancelled/completed
-                .filter(b => (
-                  (b.status === 'requested' || b.status === 'accepted') &&
-                  b.providerOfferStatus !== 'declined' &&
-                  b.status !== 'rejected' &&
-                  b.status !== 'cancelled' &&
-                  b.status !== 'completed'
-                ))
+                .filter(b => {
+                  // Show actionable / active bookings (requested, in_progress, accepted legacy)
+                  if(['rejected','cancelled','completed'].includes(b.status)) return false;
+                  if(b.providerOfferStatus === 'declined') return false;
+                  return ['requested','accepted','in_progress'].includes(b.status);
+                })
                 .map((b) => (
                 <div
                   key={b._id}
                   className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-card dark:shadow-dark-card hover:shadow-cardHover dark:hover:shadow-dark-glow border border-transparent dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300"
                 >
                   <div>
-                    <h3 className="font-semibold text-brand-gray-900 dark:text-white">
-                      #{b.bookingId} • {b.service?.name}
-                    </h3>
+                    <div className="flex items-center gap-3 flex-wrap mb-2">
+                      <h3 className="font-semibold text-brand-gray-900 dark:text-white">
+                        #{b.bookingId} • {b.service?.name}
+                      </h3>
+                      
+                      {/* Review Status Badge */}
+                      {b.status === "completed" && b.reviewStatus === "fully_closed" && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700">
+                          <FiCheck className="w-3 h-3 mr-1" />
+                          Fully Closed
+                        </span>
+                      )}
+                      {b.status === "completed" && (b.reviewStatus === "both_pending" || b.reviewStatus === "customer_pending") && !b.providerReviewed && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-700">
+                          <FiStar className="w-3 h-3 mr-1" />
+                          Please Review
+                        </span>
+                      )}
+                    </div>
                     {b.scheduledAt && (
                       <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
                         <FiCalendar className="w-4 h-4 mr-1" />
@@ -259,11 +290,18 @@ export default function ProviderHome() {
                         </button>
                       </>
                     )}
-                    {b.status === "accepted" && (
+                    {(b.status === "in_progress" || b.status === 'accepted') && (
                       <button
                         onClick={async () => {
-                          await API.patch(`/bookings/${b._id}/complete`);
-                          loadBookings();
+                          try {
+                            const response = await API.patch(`/bookings/${b._id}/complete`);
+                            loadBookings();
+                            // Auto-show rating modal for provider (they completed it, so customer reviews first)
+                            // Provider will be prompted after customer submits their review
+                            alert("✅ Service marked as completed! Waiting for customer to submit their review, then you'll be prompted to rate them.");
+                          } catch (e) {
+                            alert(e?.response?.data?.message || "Failed to mark complete");
+                          }
                         }}
                         className="px-4 py-2 bg-brand-primary dark:bg-blue-500 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-600 transition-all duration-300 shadow-sm dark:shadow-glow-blue"
                       >
@@ -296,17 +334,35 @@ export default function ProviderHome() {
           )}
         </section>
       </div>
-      <RatingModal
+      <EnhancedRatingModal
         open={!!rateTarget}
         onClose={() => setRateTarget(null)}
         title="Rate this customer"
         submitting={submittingRating}
-        onSubmit={async ({ rating, comment }) => {
+        userRole="provider"
+        otherPartyName={rateTarget?.customer?.name || "the customer"}
+        otherPartyRating={rateTarget?.customer?.rating || 0}
+        otherPartyReviews={customerProfile?.reviews || []}
+        showImageUpload={false}
+        onSubmit={async ({ rating, comment, optionalMessage }) => {
           if(!rateTarget) return;
           try {
             setSubmittingRating(true);
-            await RatingsAPI.rateCustomer({ bookingId: rateTarget._id, rating, comment });
+            const response = await RatingsAPI.rateCustomer({ 
+              bookingId: rateTarget._id, 
+              rating, 
+              comment,
+              optionalMessage 
+            });
             setRateTarget(null);
+            
+            // Show success message based on review status
+            if (response.data.reviewStatus === "fully_closed") {
+              alert("✅ Thank you for your review! Service is now fully closed.");
+            } else {
+              alert("✅ Thank you for your review!");
+            }
+            
             loadBookings();
           } catch(e){
             alert(e?.response?.data?.message || 'Failed to submit rating. Please try again.');

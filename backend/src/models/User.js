@@ -23,7 +23,8 @@ const userSchema = new mongoose.Schema(
     ratingCount: { type: Number, default: 0 },
     completedJobs: { type: Number, default: 0 },
   // Customer specific
-  address: { type: String }
+  address: { type: String },
+  preciseAddress: { type: String } // For remote/rural locations with detailed directions
   },
   { timestamps: true }
 );

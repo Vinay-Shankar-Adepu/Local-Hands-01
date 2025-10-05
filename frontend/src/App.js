@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleGuard from "./components/RoleGuard";
 import LogoReveal from "./components/LogoReveal";
 import { AnimatePresence, motion } from "framer-motion";
+import { ToastProvider } from "./components/Toast";
 
 // 🧭 Navbars
 import PublicNavbar from "./components/PublicNavbar";
@@ -27,14 +28,35 @@ import WelcomePage from "./pages/WelcomePage";
 
 export default function App() {
   const { user, loading } = useAuth();
-  const [logoDone, setLogoDone] = useState(false);
-  const [navbarKey, setNavbarKey] = useState("public");
+  // ✅ Skip logo reveal after first visit in this session
+  const [logoDone, setLogoDone] = useState(() => {
+    return sessionStorage.getItem('logo_seen') === 'true';
+  });
 
-  // Update navbar when user role changes
-  useEffect(() => {
-    if (user?.role) setNavbarKey(user.role);
-    else setNavbarKey("public");
-  }, [user]);
+  // ✅ Normalize role (handles accidental case / whitespace issues)
+  const normalizedRole = useMemo(
+    () => (user?.role ? String(user.role).trim().toLowerCase() : null),
+    [user?.role]
+  );
+
+  const NavbarComponent = useMemo(() => {
+    switch (normalizedRole) {
+      case "customer":
+        return CustomerNavbar;
+      case "provider":
+        return ProviderNavbar;
+      case "admin":
+        return AdminNavbar;
+      default:
+        return PublicNavbar;
+    }
+  }, [normalizedRole]);
+
+  // Debug in development
+  if (process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console
+    console.debug("[Navbar Role Detection] user.role=", user?.role, "normalized=", normalizedRole);
+  }
 
   // ✅ Show a small loader while auth is initializing (not after)
   if (loading) {
@@ -45,32 +67,31 @@ export default function App() {
     );
   }
 
-  // ✅ Choose navbar based on role
-  const NavbarComponent =
-    user?.role === "customer"
-      ? CustomerNavbar
-      : user?.role === "provider"
-      ? ProviderNavbar
-      : user?.role === "admin"
-      ? AdminNavbar
-      : PublicNavbar;
-
   const fadeVariants = {
     hidden: { opacity: 0, y: -10 },
     visible: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -10 },
   };
 
-  return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-all duration-300">
-      {/* 🎬 Logo Reveal runs only once */}
-      {!logoDone && <LogoReveal onComplete={() => setLogoDone(true)} />}
+  const handleLogoComplete = () => {
+    setLogoDone(true);
+    sessionStorage.setItem('logo_seen', 'true');
+  };
 
-      {/* ✅ Navbar appears after logo animation completes */}
-      {logoDone && (
-        <AnimatePresence mode="wait">
+  return (
+    <ToastProvider>
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-all duration-300">
+        {/* 🎬 Logo Reveal runs only once per session */}
+        <AnimatePresence>
+          {!logoDone && <LogoReveal onComplete={handleLogoComplete} />}
+        </AnimatePresence>
+
+        {/* ✅ Navbar appears after logo animation completes */}
+        {logoDone && (
+          <AnimatePresence mode="wait">
           <motion.div
-            key={navbarKey}
+            // Key directly off role so it always re-renders on change
+            key={user?.role || "public"}
             initial="hidden"
             animate="visible"
             exit="exit"
@@ -184,6 +205,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-    </div>
+      </div>
+    </ToastProvider>
   );
 }

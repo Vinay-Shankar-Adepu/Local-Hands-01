@@ -41,9 +41,11 @@ const LogoReveal = ({ onComplete }) => {
 
   return (
     <motion.div
-      className="fixed inset-0 z-[999] flex items-start"
+      className="fixed inset-0 z-[999] flex items-start bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
       initial="initial"
       animate="hold"
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
     >
       {/* Logo wrapper orchestrates later states via sequence */}
       <motion.div

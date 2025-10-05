@@ -10,7 +10,9 @@ import {
   FiSearch,
   FiMaximize2,
   FiX,
+  FiLock,
 } from "react-icons/fi";
+import { useToast } from "../components/Toast";
 import {
   MapContainer,
   TileLayer,
@@ -98,11 +100,19 @@ function MapAutoResize({ center }) {
 export default function ProfilePage() {
   const { user, saveSession } = useAuth();
   const { theme } = useTheme();
+  const { addToast } = useToast();
 
   const [form, setForm] = useState({
     name: user?.name || "",
     phone: user?.phone || "",
     address: user?.address || "",
+    preciseAddress: user?.preciseAddress || "",
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   const [position, setPosition] = useState(null);
@@ -110,6 +120,7 @@ export default function ProfilePage() {
   const [distance, setDistance] = useState(null);
   const [loading, setLoading] = useState(!user);
   const [saving, setSaving] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [locating, setLocating] = useState(false);
@@ -129,6 +140,7 @@ export default function ProfilePage() {
           name: u.name || "",
           phone: u.phone || "",
           address: u.address || "",
+          preciseAddress: u.preciseAddress || "",
         });
         if (u.location?.lat && u.location?.lng) {
           setPosition([u.location.lat, u.location.lng]);
@@ -211,6 +223,44 @@ export default function ProfilePage() {
       setError(e?.response?.data?.message || "Save failed.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    const { oldPassword, newPassword, confirmPassword } = passwordForm;
+
+    // Validation
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      addToast("Please fill all password fields", "error");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      addToast("New passwords do not match", "error");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      addToast("Password must be at least 6 characters", "error");
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      const { data } = await API.post("/auth/change-password", {
+        oldPassword,
+        newPassword,
+      });
+      addToast(data.message || "Password changed successfully!", "success");
+      setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (e) {
+      addToast(
+        e.response?.data?.message || "Failed to change password",
+        "error"
+      );
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -389,6 +439,28 @@ export default function ProfilePage() {
                 )}
               </div>
 
+              {/* Precise Address (Text Input for Remote Locations) */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Precise Address <span className="text-xs text-gray-500 dark:text-gray-400">(Optional - for remote areas)</span>
+                </label>
+                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900/50">
+                  <FiNavigation className="text-gray-400 mr-3" />
+                  <input
+                    type="text"
+                    className="bg-transparent flex-1 outline-none text-gray-900 dark:text-gray-100"
+                    placeholder="e.g., Near Old Temple, Village Road, Landmark details..."
+                    value={form.preciseAddress}
+                    onChange={(e) =>
+                      setForm({ ...form, preciseAddress: e.target.value })
+                    }
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  💡 Add specific landmarks or directions for areas not accurately shown on the map
+                </p>
+              </div>
+
               {/* Save */}
               <div className="flex items-center gap-3 pt-3">
                 <button
@@ -403,6 +475,95 @@ export default function ProfilePage() {
                 <span className="text-[11px] text-gray-500 dark:text-gray-500">
                   Your data is private and secure.
                 </span>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {/* Change Password Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
+          <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 text-white px-6 py-4 flex items-center gap-2">
+            <FiLock className="w-5 h-5" />
+            <h2 className="text-lg font-semibold">Change Password</h2>
+          </div>
+
+          <div className="p-6">
+            <form onSubmit={handlePasswordChange} className="space-y-5">
+              {/* Old Password */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  Current Password
+                </label>
+                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900/50">
+                  <FiLock className="text-gray-400 mr-3" />
+                  <input
+                    type="password"
+                    className="bg-transparent flex-1 outline-none text-gray-900 dark:text-gray-100"
+                    placeholder="Enter current password"
+                    value={passwordForm.oldPassword}
+                    onChange={(e) =>
+                      setPasswordForm({ ...passwordForm, oldPassword: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  New Password
+                </label>
+                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900/50">
+                  <FiLock className="text-gray-400 mr-3" />
+                  <input
+                    type="password"
+                    className="bg-transparent flex-1 outline-none text-gray-900 dark:text-gray-100"
+                    placeholder="At least 6 characters"
+                    value={passwordForm.newPassword}
+                    onChange={(e) =>
+                      setPasswordForm({ ...passwordForm, newPassword: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  Confirm New Password
+                </label>
+                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900/50">
+                  <FiLock className="text-gray-400 mr-3" />
+                  <input
+                    type="password"
+                    className="bg-transparent flex-1 outline-none text-gray-900 dark:text-gray-100"
+                    placeholder="Re-enter new password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordForm({
+                        ...passwordForm,
+                        confirmPassword: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={savingPassword}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {savingPassword && (
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+                  )}
+                  {savingPassword ? "Updating..." : "Update Password"}
+                </button>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                  Password must be at least 6 characters long.
+                </p>
               </div>
             </form>
           </div>

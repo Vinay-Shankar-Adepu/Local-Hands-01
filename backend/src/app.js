@@ -27,7 +27,8 @@ connectDB().then(async ()=>{
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '1mb' }));
+// Increase JSON limit to allow base64-embedded work images (lightweight proofs)
+app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
 app.use('/api/auth', authRoutes);
