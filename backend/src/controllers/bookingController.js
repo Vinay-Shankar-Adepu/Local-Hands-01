@@ -98,11 +98,13 @@ export const createBookingMulti = async (req, res) => {
       location: { type: 'Point', coordinates: [lng, lat] },
       scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
       status: 'requested',
+      overallStatus: 'pending',
       paymentStatus: 'pending',
       pendingProviders: queue,
       offers: [{ provider: first.provider._id, status: 'pending', offeredAt: now }],
       providerResponseTimeout: new Date(now.getTime() + OFFER_TIMEOUT_MS),
       autoAssignMessage: 'Searching for best available provider...'
+      ,pendingExpiresAt: new Date(now.getTime() + 5*60*1000) // 5 minute global visibility window
     });
 
     return res.json({ booking, message: 'Request sent. The best available provider will be assigned shortly.' });
@@ -112,24 +114,33 @@ export const createBookingMulti = async (req, res) => {
 };
 
 async function advanceOffer(booking){
-  // Keep pulling from queue until we find a provider who is still available
-  while(booking.pendingProviders && booking.pendingProviders.length > 0){
-    const nextProviderId = booking.pendingProviders.shift();
-    const prov = await User.findById(nextProviderId).select('isAvailable');
-    if(prov && prov.isAvailable){
-      booking.offers.push({ provider: nextProviderId, status: 'pending', offeredAt: new Date() });
-      booking.providerResponseTimeout = new Date(Date.now() + OFFER_TIMEOUT_MS);
-      await booking.save();
-      return; // scheduled new offer
+  try {
+    if(!booking) return;
+    if(!Array.isArray(booking.offers)) booking.offers = [];
+    if(!Array.isArray(booking.pendingProviders)) booking.pendingProviders = [];
+    // Keep pulling from queue until we find a provider who is still available
+    while(booking.pendingProviders && booking.pendingProviders.length > 0){
+      const nextProviderId = booking.pendingProviders.shift();
+      if(!nextProviderId) continue;
+      const prov = await User.findById(nextProviderId).select('isAvailable');
+      if(prov && prov.isAvailable){
+        booking.offers.push({ provider: nextProviderId, status: 'pending', offeredAt: new Date() });
+        booking.providerResponseTimeout = new Date(Date.now() + OFFER_TIMEOUT_MS);
+        await booking.save();
+        return; // scheduled new offer
+      }
+      // else skip silently and continue
     }
-    // else skip silently and continue
+    // Queue exhausted or no live providers
+    booking.providerResponseTimeout = undefined;
+    if(!booking.offers.find(o=>o.status==='pending')){
+      booking.autoAssignMessage = 'No live providers currently available.';
+    }
+    await booking.save();
+  } catch(err){
+    console.error('[advanceOffer] error', err);
+    throw err;
   }
-  // Queue exhausted or no live providers
-  booking.providerResponseTimeout = undefined;
-  if(!booking.offers.find(o=>o.status==='pending')){
-    booking.autoAssignMessage = 'No live providers currently available.';
-  }
-  await booking.save();
 }
 
 async function expireIfNeeded(booking){
@@ -228,6 +239,25 @@ export const myOffers = async (req,res)=>{
   } catch(e){ res.status(500).json({ message: e.message }); }
 };
 
+// New: provider-visible pending bookings excluding those they rejected or accepted
+export const providerAvailableBookings = async (req,res)=>{
+  try {
+    const providerId = req.userId;
+    // Criteria: overallStatus pending, no accepted providerResponses, and either
+    //   - no providerResponses for this provider
+    //   - or providerResponses for this provider is not rejected
+    const query = {
+      overallStatus: 'pending',
+      $and: [
+        { 'providerResponses': { $not: { $elemMatch: { status: 'accepted' } } } },
+        { 'providerResponses': { $not: { $elemMatch: { providerId: providerId, status: { $in: ['rejected','accepted'] } } } } }
+      ]
+    };
+    const bookings = await Booking.find(query).select('bookingId serviceTemplate service customer createdAt providerResponses overallStatus').populate('serviceTemplate','name').populate('service','name');
+    res.json({ bookings });
+  } catch(e){ res.status(500).json({ message: e.message }); }
+};
+
 // Admin debug: force advance current pending offer (skip it) – for QA only
 export const forceAdvanceOffer = async (req,res)=>{
   try {
@@ -256,8 +286,22 @@ export const acceptBooking = async (req, res) => {
 
     const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ message: "Not found" });
-    if (booking.status !== "requested")
-      return res.status(400).json({ message: "Cannot accept this booking" });
+    // New logic: if overallStatus exists use it; fallback to legacy status
+    if (booking.overallStatus) {
+      if (booking.overallStatus !== 'pending') {
+        return res.status(400).json({ message: 'Cannot accept this booking' });
+      }
+      // Prevent multiple acceptances
+      if (booking.providerResponses?.some(r=>r.status==='accepted')) {
+        return res.status(400).json({ message: 'Already accepted by another provider' });
+      }
+      // Check if current provider previously rejected it
+      if (booking.providerResponses?.some(r=>r.providerId.toString()===provider._id.toString() && r.status==='rejected')) {
+        return res.status(403).json({ message: 'You already rejected this request' });
+      }
+    } else if (booking.status !== 'requested') {
+      return res.status(400).json({ message: 'Cannot accept this booking' });
+    }
 
     // Multi-provider flow: if offers exist, mirror acceptOffer logic
     if (booking.offers && booking.offers.length > 0) {
@@ -278,11 +322,24 @@ export const acceptBooking = async (req, res) => {
       return res.json({ booking, mode: 'multi', action: 'offer-accepted' });
     }
 
-    // Legacy single-provider path
-    if (booking.provider && booking.provider.toString() !== provider._id.toString()) {
-      return res.status(403).json({ message: "You are not the owner provider for this service" });
+    // New providerResponses path if overallStatus used
+    if (booking.overallStatus) {
+      if(!Array.isArray(booking.providerResponses)) booking.providerResponses = [];
+      booking.providerResponses.push({ providerId: provider._id, status: 'accepted', respondedAt: new Date() });
+      booking.overallStatus = 'in-progress';
+      booking.status = 'in_progress'; // keep legacy field synchronized
+      booking.provider = provider._id;
+      booking.acceptedAt = new Date();
+      await booking.save();
+      console.log('[service] Provider %s accepted request %s (now in-progress)', provider._id, booking._id);
+      return res.json({ booking, mode: 'providerResponses', action: 'accepted' });
     }
-  booking.status = "in_progress";
+
+    // Legacy single-provider path (no overallStatus field yet)
+    if (booking.provider && booking.provider.toString() !== provider._id.toString()) {
+      return res.status(403).json({ message: 'You are not the owner provider for this service' });
+    }
+    booking.status = 'in_progress';
     booking.provider = provider._id;
     booking.acceptedAt = new Date();
     await booking.save();
@@ -296,15 +353,33 @@ export const acceptBooking = async (req, res) => {
 export const rejectBooking = async (req, res) => {
   try {
     const { id } = req.params;
-    const { reason = "" } = req.body;
+    const reason = (req.body && typeof req.body.reason === 'string') ? req.body.reason : '';
+    if(!req.body) {
+      console.warn('[rejectBooking] req.body was undefined (no JSON payload sent). Defaulting reason to empty string.');
+    }
+    console.log('[rejectBooking] incoming id=%s reason="%s" user=%s', id, reason, req.userId);
     const provider = await User.findById(req.userId);
     if (!provider || provider.role !== "provider")
       return res.status(403).json({ message: "Only providers can reject" });
 
     const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ message: "Not found" });
-    if (booking.status !== "requested")
-      return res.status(400).json({ message: "Cannot reject this booking" });
+    console.log('[rejectBooking] booking.status=%s offers=%d overallStatus=%s', booking.status, booking.offers?.length || 0, booking.overallStatus);
+    if (booking.overallStatus) {
+      if (booking.overallStatus !== 'pending') {
+        return res.status(400).json({ message: 'Cannot reject this booking' });
+      }
+      // If provider already accepted or rejected, enforce idempotency
+      const existing = booking.providerResponses?.find(r=>r.providerId.toString()===provider._id.toString());
+      if (existing && existing.status === 'rejected') {
+        return res.status(200).json({ booking, message: 'Already rejected', mode: 'providerResponses', action: 'already-rejected' });
+      }
+      if (existing && existing.status === 'accepted') {
+        return res.status(400).json({ message: 'You already accepted this booking' });
+      }
+    } else if (booking.status !== 'requested') {
+      return res.status(400).json({ message: 'Cannot reject this booking' });
+    }
 
     // Multi-provider adaptation: decline current offer only (do not mark whole booking rejected yet)
     if (booking.offers && booking.offers.length > 0) {
@@ -316,14 +391,33 @@ export const rejectBooking = async (req, res) => {
       pending.status = 'declined';
       pending.respondedAt = new Date();
       await advanceOffer(booking);
+      console.log('[rejectBooking] multi decline done -> next offer count pending=%d', booking.offers.filter(o=>o.status==='pending').length);
       return res.json({ booking, mode: 'multi', action: 'offer-declined' });
     }
 
+    // If overallStatus mode active, record only provider-specific rejection
+    if (booking.overallStatus) {
+      if(!Array.isArray(booking.providerResponses)) booking.providerResponses = [];
+      const existing = booking.providerResponses.find(r=>r.providerId.toString()===provider._id.toString());
+      if (existing) {
+        existing.status = 'rejected';
+        existing.respondedAt = new Date();
+      } else {
+        booking.providerResponses.push({ providerId: provider._id, status: 'rejected', respondedAt: new Date() });
+      }
+      booking.rejectionReason = reason; // last rejection reason; could be extended to array later
+      await booking.save();
+      console.log('[service] Provider %s rejected request %s', provider._id, booking._id);
+      console.log('[service] Remaining visible for other providers');
+      return res.json({ booking, mode: 'providerResponses', action: 'rejected' });
+    }
+
     // Legacy path: mark entire booking rejected
-    booking.status = "rejected";
+    booking.status = 'rejected';
     booking.provider = provider._id;
     booking.rejectionReason = reason;
     await booking.save();
+    console.log('[rejectBooking] legacy rejected booking %s saved', booking._id);
     res.json({ booking, mode: 'legacy' });
   } catch (e) {
     console.error('[rejectBooking] error', e);

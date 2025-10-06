@@ -22,9 +22,12 @@ const userSchema = new mongoose.Schema(
     rating: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
     completedJobs: { type: Number, default: 0 },
-  // Customer specific
-  address: { type: String },
-  preciseAddress: { type: String } // For remote/rural locations with detailed directions
+    // Customer specific
+    address: { type: String },
+    preciseAddress: { type: String }, // For remote/rural locations with detailed directions
+    // Password reset (OTP via email)
+    passwordResetOtp: { type: String },
+    passwordResetExpires: { type: Date },
   },
   { timestamps: true }
 );

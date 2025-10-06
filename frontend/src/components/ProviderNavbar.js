@@ -27,19 +27,7 @@ export default function ProviderNavbar() {
   const [jobCount, setJobCount] = useState(0);
 
   useEffect(() => setMounted(true), []);
-  const isActive = (path) => loc.pathname === path;
-
-  // Don't render if user is not loaded yet
-  if (!user) {
-    return (
-      <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
-          <div className="text-gray-500 dark:text-gray-400">Loading...</div>
-        </div>
-      </nav>
-    );
-  }
-
+  
   // Fetch new job count every 15s
   useEffect(() => {
     if (!user) return;
@@ -55,6 +43,8 @@ export default function ProviderNavbar() {
     const interval = setInterval(fetchCount, 15000);
     return () => clearInterval(interval);
   }, [user]);
+  // Inline path comparison instead of separate helper to avoid any stale hot-reload scope issues
+  const currentPath = loc.pathname;
 
   const toggleLive = async () => {
     try {
@@ -70,6 +60,17 @@ export default function ProviderNavbar() {
     { name: "History", path: "/provider/history", icon: FiClock },
     { name: "Profile", path: "/profile", icon: FiUser },
   ];
+
+  // Don't render if user is not loaded yet (after all hooks)
+  if (!user) {
+    return (
+      <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
+          <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-black/30 transition-all duration-300">
@@ -97,7 +98,7 @@ export default function ProviderNavbar() {
               <Link
                 to={item.path}
                 className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
-                  isActive(item.path)
+                  currentPath === item.path
                     ? "text-blue-600 dark:text-blue-400"
                     : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
@@ -113,7 +114,7 @@ export default function ProviderNavbar() {
                     {item.badge}
                   </motion.span>
                 )}
-                {isActive(item.path) && (
+                {currentPath === item.path && (
                   <motion.div
                     layoutId="activeProviderTab"
                     className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"
@@ -212,7 +213,7 @@ export default function ProviderNavbar() {
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
-                  isActive(item.path)
+                  currentPath === item.path
                     ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                     : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}

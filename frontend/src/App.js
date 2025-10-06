@@ -25,6 +25,7 @@ import CustomerHistory from "./pages/CustomerHistory";
 import ProviderHistory from "./pages/ProviderHistory";
 import AdminDashboard from "./pages/AdminDashboard";
 import WelcomePage from "./pages/WelcomePage";
+import ForgotPassword from "./pages/ForgotPassword";
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -110,6 +111,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Role Selection */}
           <Route

@@ -32,6 +32,17 @@ export default function CustomerNavbar() {
     { name: "Profile", path: "/profile", icon: FiUser },
   ];
 
+  // Early render skeleton when auth still resolving
+  if (!user) {
+    return (
+      <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
+          <div className="text-gray-500 dark:text-gray-400 text-sm">Loading...</div>
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-black/30 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
@@ -101,8 +112,8 @@ export default function CustomerNavbar() {
           {/* User Info */}
           <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="text-sm text-right">
-              <p className="font-semibold text-gray-900 dark:text-white">{user.name}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user.role}</p>
+              <p className="font-semibold text-gray-900 dark:text-white">{user?.name || 'User'}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user?.role || 'customer'}</p>
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
-import { createBooking, createBookingMulti, acceptBooking, rejectBooking, completeBooking, customerCompleteBooking, myBookings, cancelBooking, acceptOffer, declineOffer, myOffers, forceAdvanceOffer, getPendingCount } from "../controllers/bookingController.js";
+import { createBooking, createBookingMulti, acceptBooking, rejectBooking, completeBooking, customerCompleteBooking, myBookings, cancelBooking, acceptOffer, declineOffer, myOffers, forceAdvanceOffer, getPendingCount, providerAvailableBookings } from "../controllers/bookingController.js";
 
 const router = Router();
 
@@ -10,6 +10,7 @@ router.post("/create-multi", requireAuth, requireRole("customer"), createBooking
 router.get("/mine", requireAuth, myBookings);
 router.get("/pending-count", requireAuth, requireRole("provider"), getPendingCount);
 router.get('/offers/mine', requireAuth, requireRole('provider'), myOffers);
+router.get('/available', requireAuth, requireRole('provider'), providerAvailableBookings);
 
 // Dynamic routes last
 router.patch('/:id/offer/accept', requireAuth, requireRole('provider'), acceptOffer);
@@ -18,7 +19,7 @@ router.patch('/:id/offer/force-advance', requireAuth, requireRole('admin'), forc
 router.patch("/:id/accept", requireAuth, requireRole("provider"), acceptBooking);
 router.patch("/:id/reject", requireAuth, requireRole("provider"), rejectBooking);
 router.patch("/:id/complete", requireAuth, requireRole("provider"), completeBooking);
-router.patch(":id/customer-complete", requireAuth, requireRole("customer"), customerCompleteBooking);
+router.patch("/:id/customer-complete", requireAuth, requireRole("customer"), customerCompleteBooking);
 router.patch("/:id/cancel", requireAuth, requireRole("customer"), cancelBooking);
 // In future could be filtered; for now rely on /mine with status filter client side
 

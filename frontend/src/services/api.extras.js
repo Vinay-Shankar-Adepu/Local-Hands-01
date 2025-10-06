@@ -54,3 +54,10 @@ export const NotificationsAPI = {
   // PATCH /notifications/read-all
   markAllRead: () => API.patch("/notifications/read-all"),
 };
+
+// ---- Auth (extended) ----
+export const PasswordResetAPI = {
+  request: (email) => API.post('/auth/forgot-password/request', { email }),
+  verify: (email, otp) => API.post('/auth/forgot-password/verify', { email, otp }),
+  reset: (email, otp, newPassword) => API.post('/auth/forgot-password/reset', { email, otp, newPassword }),
+};

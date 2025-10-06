@@ -27,6 +27,12 @@ const bookingSchema = new mongoose.Schema(
       enum: ["requested", "accepted", "in_progress", "rejected", "completed", "cancelled"],
       default: "requested"
     },
+    // New generalized overall status for multi-provider visibility logic
+    overallStatus: {
+      type: String,
+      enum: ['pending','in-progress','completed','cancelled','expired'],
+      default: 'pending'
+    },
 
     // where the service is requested
     location: {
@@ -44,6 +50,12 @@ const bookingSchema = new mongoose.Schema(
     cancelledAt: { type: Date },
     rejectionReason: { type: String }
     ,
+    // Track each provider's response (accept / reject / pending)
+    providerResponses: [{
+      providerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      status: { type: String, enum: ['accepted','rejected','pending'], default: 'pending' },
+      respondedAt: { type: Date }
+    }],
     // Multi-provider assignment pipeline
     pendingProviders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // ordered queue not yet offered
     offers: [{
@@ -54,6 +66,9 @@ const bookingSchema = new mongoose.Schema(
     }],
     providerResponseTimeout: { type: Date }, // when current offer expires
     autoAssignMessage: { type: String }
+    ,
+    // New: automatic expiry of pending booking if no provider accepts within window
+    pendingExpiresAt: { type: Date }
   },
   { timestamps: true }
 );
