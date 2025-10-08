@@ -30,6 +30,7 @@ export const requireAuth = async (req, res, next) => {
 // Require specific role(s)
 export const requireRole = (...roles) => (req, res, next) => {
   if (!roles.includes(req.userRole)) {
+    console.warn('[requireRole] forbidden user=%s role=%s requiredAny=%j path=%s', req.userId, req.userRole, roles, req.path);
     return res.status(403).json({ message: "You do not have permission" });
   }
   next();

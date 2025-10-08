@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 const bookingSchema = new mongoose.Schema(
   {
     bookingId: { type: String, required: true, unique: true }, // O1001...
+    // serviceId alias (immutable) for cross-collection linking (reviews, chat, media)
+    serviceId: { type: String, unique: true },
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     provider: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // filled after accept
     service: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
@@ -46,9 +48,11 @@ const bookingSchema = new mongoose.Schema(
       default: "pending"
     },
     acceptedAt: { type: Date },
+  startedAt: { type: Date },
     completedAt: { type: Date },
     cancelledAt: { type: Date },
-    rejectionReason: { type: String }
+  rejectionReason: { type: String },
+  cancelReason: { type: String }
     ,
     // Track each provider's response (accept / reject / pending)
     providerResponses: [{
@@ -69,11 +73,20 @@ const bookingSchema = new mongoose.Schema(
     ,
     // New: automatic expiry of pending booking if no provider accepts within window
     pendingExpiresAt: { type: Date }
+    ,
+    // Lock flag once a provider accepts preventing further offers
+    locked: { type: Boolean, default: false } // acceptance lock; once true providers should no longer see this booking in available list
   },
   { timestamps: true }
 );
 
 bookingSchema.index({ location: "2dsphere" });
+// Optimize queries filtering by availability (overallStatus pending + unlocked)
+bookingSchema.index({ overallStatus: 1, locked: 1, createdAt: -1 });
+bookingSchema.pre('save', function(next){
+  if(!this.serviceId) this.serviceId = this.bookingId; // backfill alias
+  next();
+});
 
 const Booking = mongoose.model("Booking", bookingSchema);
 export default Booking;

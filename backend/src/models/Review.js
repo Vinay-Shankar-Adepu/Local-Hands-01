@@ -5,6 +5,10 @@ const reviewSchema = new mongoose.Schema(
     booking: { type: mongoose.Schema.Types.ObjectId, ref: "Booking", required: true },
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     provider: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    // Linkage for service-level aggregation
+    serviceId: { type: String, index: true },
+    service: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
+    serviceTemplate: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceTemplate' },
     
     // Hidden from the person who gave it (used for platform quality & other party's profile)
     rating: { type: Number, min: 1, max: 5, required: true },
@@ -29,6 +33,7 @@ const reviewSchema = new mongoose.Schema(
 reviewSchema.index({ provider: 1, createdAt: -1 });
 reviewSchema.index({ booking: 1, direction: 1 }, { unique: true });
 reviewSchema.index({ booking: 1 });
+reviewSchema.index({ serviceId: 1, direction: 1 });
 
 const Review = mongoose.model("Review", reviewSchema);
 export default Review;

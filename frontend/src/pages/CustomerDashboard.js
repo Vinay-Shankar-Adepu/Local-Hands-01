@@ -1,4 +1,5 @@
 import { useAuth } from "../context/AuthContext";
+import BookingRequestPanel from '../components/BookingRequestPanel.jsx';
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
@@ -16,6 +17,13 @@ export default function CustomerDashboard() {
           <h2 className="font-semibold">Recommended for you</h2>
           <p className="text-gray-600 mt-2">We’ll show personalized picks here.</p>
         </div>
+      </section>
+
+      <section className="mt-8">
+        <BookingRequestPanel
+          templateId={null /* Replace with selected template id from UI */}
+          customerLocation={{ lng: 77.6, lat: 12.9 }}
+        />
       </section>
     </div>
   );

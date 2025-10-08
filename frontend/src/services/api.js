@@ -34,9 +34,11 @@ export const del = (url, config = {}) => API.delete(url, config);
 // Domain specific helpers (optional convenience)
 export const BookingAPI = {
   create: (payload) => API.post("/bookings/create", payload),
+  createMulti: (payload) => API.post('/bookings/create-multi', payload),
   mine: () => API.get("/bookings/mine"),
   accept: (id) => API.patch(`/bookings/${id}/accept`),
   reject: (id, reason="") => API.patch(`/bookings/${id}/reject`, { reason }),
+  cancel: (id, reason="") => API.patch(`/bookings/${id}/cancel`, { reason }),
 };
 
 export const ServiceAPI = {

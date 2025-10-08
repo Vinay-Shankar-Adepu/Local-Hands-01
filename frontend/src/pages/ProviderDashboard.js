@@ -4,6 +4,7 @@ import API from '../services/api';
 import { FiClock, FiZap, FiCheck, FiX, FiBriefcase } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import ServiceSelectionModal from '../components/ServiceSelectionModal';
+import MapComponent from '../components/MapComponent.jsx';
 
 export default function ProviderDashboard() {
   const [offers, setOffers] = useState([]); // pending offers
@@ -12,6 +13,7 @@ export default function ProviderDashboard() {
   const pollRef = useRef(null);
   const { theme, setTheme } = useTheme();
   const { user, setAvailability } = useAuth();
+  const geoWatchRef = useRef(null);
   const [liveUpdating, setLiveUpdating] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
 
@@ -26,7 +28,7 @@ export default function ProviderDashboard() {
 
   useEffect(() => {
     fetchOffers();
-    pollRef.current = setInterval(fetchOffers, 15000); // 15s polling
+  pollRef.current = setInterval(fetchOffers, 5000); // 5s polling for 10s offer windows
     const tick = setInterval(()=> setNow(Date.now()), 1000); // countdown second resolution
     return () => { clearInterval(pollRef.current); clearInterval(tick); };
   }, []);
@@ -49,6 +51,9 @@ export default function ProviderDashboard() {
 
   return (
     <div className="min-h-screen max-w-7xl mx-auto px-6 py-10 space-y-10 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
+      <MapComponent mode="provider" enableRoute={false} onLocationChange={(loc)=>{
+        if(loc?.source==='drag') console.log('[map] provider dragged to', loc);
+      }} />
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold mb-2">Provider Overview</h1>
@@ -75,7 +80,25 @@ export default function ProviderDashboard() {
               onClick={async ()=> {
                 try {
                   setLiveUpdating(true);
-                  await setAvailability(!user.isAvailable);
+                  const next = !user.isAvailable;
+                  await setAvailability(next);
+                  // Start or stop live location tracking
+                  if(next){
+                    if("geolocation" in navigator){
+                      geoWatchRef.current = navigator.geolocation.watchPosition(pos => {
+                        const { longitude, latitude } = pos.coords;
+                        // Fire and forget update
+                        API.patch('/providers/location', { lng: longitude, lat: latitude }).catch(()=>{});
+                      }, err => {
+                        console.warn('Geo watch error', err);
+                      }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+                    }
+                  } else {
+                    if(geoWatchRef.current != null && navigator.geolocation){
+                      navigator.geolocation.clearWatch(geoWatchRef.current);
+                      geoWatchRef.current = null;
+                    }
+                  }
                 } catch(e){ alert(e?.response?.data?.message || 'Failed to update'); }
                 finally { setLiveUpdating(false); }
               }}
@@ -117,14 +140,15 @@ export default function ProviderDashboard() {
         <div className="space-y-4">
           {offers.map(o => {
             const secs = secondsLeft(o.timeoutAt);
-            const pct = secs && o.timeoutAt ? Math.min(100, Math.max(0, (secs/120)*100)) : 0;
+            const totalWindow = o.windowSeconds || 10; // backend supplied or default 10
+            const pct = secs != null ? Math.min(100, Math.max(0, (secs/totalWindow)*100)) : 0;
             return (
               <div key={o._id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-card">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium text-gray-800 dark:text-gray-100">Booking {o.bookingId}</h3>
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                     <FiClock className="w-4 h-4" />
-                    {secs != null ? `${secs}s left` : '—'}
+                    {secs != null ? `${secs}s left` : '—'} / {o.windowSeconds || 10}s
                   </div>
                 </div>
                 <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden mb-4">

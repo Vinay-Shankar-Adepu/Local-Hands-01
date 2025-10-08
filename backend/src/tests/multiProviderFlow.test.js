@@ -84,6 +84,18 @@ it('second provider accepts offer', async () => {
   expect(accept.body.booking.provider).toBeDefined();
 });
 
+it('locks booking after acceptance (no new pending offers appear)', async () => {
+  // Fetch the booking directly
+  const b = await Booking.findById(bookingId).lean();
+  const pending = b.offers.filter(o=>o.status==='pending');
+  expect(pending.length).toBe(0);
+  // Simulate time passing and trigger offers fetch for provider1 again; should not add offers
+  await request(app).get('/api/bookings/offers/mine').set('Authorization',`Bearer ${provider1Token}`).send();
+  const refreshed = await Booking.findById(bookingId).lean();
+  const newPending = refreshed.offers.filter(o=>o.status==='pending');
+  expect(newPending.length).toBe(0);
+});
+
 it('simulates expiration advancing offer queue', async () => {
   // Create fresh booking so we have pending offers again
   const newBookingRes = await request(app).post('/api/bookings/create-multi').set('Authorization',`Bearer ${customerToken}`).send({ templateId, lng:77.6, lat:12.9 });

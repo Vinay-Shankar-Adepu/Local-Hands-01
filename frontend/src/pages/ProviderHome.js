@@ -47,16 +47,23 @@ export default function ProviderHome() {
         const bookings = r.data.bookings || [];
         setBookings(bookings);
         
+        // Only show rating reminder once per session and only if no modal is currently open
+        if (rateTarget) return; // do not compute while modal open
+        
+        // Check if we've already shown a reminder this session
+        const hasShownReminderThisSession = sessionStorage.getItem('provider_rating_reminder_shown');
+        if (hasShownReminderThisSession) return;
+        
         // Auto-trigger rating modal for provider when customer has reviewed
         const needsProviderReview = bookings.find(
           b => b.status === "completed" && 
           (b.reviewStatus === "both_pending" || b.reviewStatus === "customer_pending") && 
-          !b.providerReviewed && 
-          !rateTarget
+          !b.providerReviewed
         );
         
         if (needsProviderReview) {
-          // Auto-show rating modal for provider
+          // Mark that we've shown a reminder this session
+          sessionStorage.setItem('provider_rating_reminder_shown', 'true');
           setTimeout(() => setRateTarget(needsProviderReview), 500);
         }
       })
@@ -76,6 +83,8 @@ export default function ProviderHome() {
   }, [services]);
 
   useEffect(() => {
+    // Clear session reminder flag on component mount (fresh login)
+    sessionStorage.removeItem('provider_rating_reminder_shown');
     loadBookings();
     const iv = setInterval(loadBookings, 5000); // auto-refresh bookings
     return () => clearInterval(iv);
@@ -336,7 +345,11 @@ export default function ProviderHome() {
       </div>
       <EnhancedRatingModal
         open={!!rateTarget}
-        onClose={() => setRateTarget(null)}
+        onClose={() => {
+          // Dismiss without rating; ensure reminder doesn't show again this session
+          sessionStorage.setItem('provider_rating_reminder_shown', 'true');
+          setRateTarget(null);
+        }}
         title="Rate this customer"
         submitting={submittingRating}
         userRole="provider"
