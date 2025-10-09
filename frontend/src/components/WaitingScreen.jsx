@@ -25,7 +25,7 @@ const INTERESTING_FACTS = [
   "💪 Our platform connects thousands of customers with experts daily."
 ];
 
-export default function WaitingScreen({ isOpen, bookingId, onAccepted, onCancel, estimatedWait = 300 }) {
+export default function WaitingScreen({ isOpen, bookingId, onAccepted, estimatedWait = 300 }) {
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
 
@@ -188,23 +188,17 @@ export default function WaitingScreen({ isOpen, bookingId, onAccepted, onCancel,
           </p>
         </motion.div>
 
-        {/* Booking ID + Cancel */}
+        {/* Booking ID */}
         {bookingId && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.1 }}
-            className="text-center mt-6 space-y-4"
+            className="text-center mt-6"
           >
             <p className="text-xs text-gray-400 dark:text-gray-500">
               Booking ID: <span className="font-mono font-semibold">{bookingId}</span>
             </p>
-            {onCancel && (
-              <button
-                onClick={onCancel}
-                className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm transition"
-              >Cancel Request</button>
-            )}
           </motion.div>
         )}
       </div>

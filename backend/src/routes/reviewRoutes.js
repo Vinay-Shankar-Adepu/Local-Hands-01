@@ -21,17 +21,7 @@ router.post("/:bookingId", requireAuth, requireRole("customer"), async (req, res
     if (exists) return res.status(400).json({ message: "Already reviewed" });
 
     const providerId = booking.provider;
-    const review = await Review.create({ 
-      booking: booking._id, 
-      customer: req.userId, 
-      provider: providerId, 
-      rating, 
-      comment, 
-      direction: "customer_to_provider",
-      serviceId: booking.serviceId || booking.bookingId,
-      service: booking.service,
-      serviceTemplate: booking.serviceTemplate
-    });
+    const review = await Review.create({ booking: booking._id, customer: req.userId, provider: providerId, rating, comment, direction: "customer_to_provider" });
 
     // Update booking review status
     booking.customerReviewed = true;
@@ -90,10 +80,7 @@ router.post("/provider/:bookingId", requireAuth, requireRole("provider"), async 
       provider: req.userId, 
       rating, 
       comment, 
-      direction: "provider_to_customer",
-      serviceId: booking.serviceId || booking.bookingId,
-      service: booking.service,
-      serviceTemplate: booking.serviceTemplate
+      direction: "provider_to_customer" 
     });
 
     // Update booking review status

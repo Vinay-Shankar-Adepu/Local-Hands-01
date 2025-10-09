@@ -56,27 +56,17 @@ export default function CustomerHome() {
       const bookings = r.data.bookings || [];
       setMyBookings(bookings);
       
-      // Only show rating reminder once per session and only if no modal is currently open
-      if (rateTarget) return; // do not compute while modal open
-      
-      const RATED_PREFIX = 'lh_rated_';
-      
-      // Check if we've already shown a reminder this session
-      const hasShownReminderThisSession = sessionStorage.getItem('rating_reminder_shown');
-      if (hasShownReminderThisSession) return;
-      
-      // Find bookings that need customer review
-      const target = bookings.find(b =>
-        b.status === 'completed' &&
-        b.reviewStatus === 'provider_pending' &&
-        !b.customerReviewed &&
-        !localStorage.getItem(RATED_PREFIX + b._id)
+      // Auto-trigger rating modal for newly completed bookings
+      const needsCustomerReview = bookings.find(
+        b => b.status === "completed" && 
+        b.reviewStatus === "provider_pending" && 
+        !b.customerReviewed && 
+        !rateTarget
       );
       
-      if(target){
-        // Mark that we've shown a reminder this session
-        sessionStorage.setItem('rating_reminder_shown', 'true');
-        setTimeout(()=> setRateTarget(target), 350);
+      if (needsCustomerReview) {
+        // Auto-show rating modal for customer
+        setTimeout(() => setRateTarget(needsCustomerReview), 500);
       }
     });
   };
@@ -189,8 +179,6 @@ export default function CustomerHome() {
   };
 
   useEffect(() => {
-    // Clear session reminder flag on component mount (fresh login)
-    sessionStorage.removeItem('rating_reminder_shown');
     loadBookings();
   }, []);
 
@@ -618,11 +606,7 @@ export default function CustomerHome() {
         )}
         <EnhancedRatingModal
           open={!!rateTarget}
-          onClose={()=>{
-            // Dismiss without rating; ensure reminder doesn't show again this session
-            sessionStorage.setItem('rating_reminder_shown', 'true');
-            setRateTarget(null);
-          }}
+          onClose={()=>setRateTarget(null)}
           title='Rate this provider'
           submitting={submittingRating}
           userRole="customer"
@@ -641,8 +625,6 @@ export default function CustomerHome() {
                 optionalMessage,
                 workImages 
               });
-              // Mark booking as rated to prevent any future reminders across sessions
-              localStorage.setItem('lh_rated_'+rateTarget._id,'1');
               setRateTarget(null);
               
               // Show success message based on review status
@@ -666,18 +648,6 @@ export default function CustomerHome() {
           onAccepted={() => {
             setWaitingBooking(null);
             loadBookings();
-          }}
-          onCancel={async ()=>{
-            if(!waitingBooking) return;
-            if(!window.confirm('Cancel this pending request?')) return;
-            try {
-              await API.patch(`/bookings/${waitingBooking}/cancel`,{});
-              setWaitingBooking(null);
-              loadBookings();
-              alert('✅ Booking cancelled successfully');
-            } catch(e){
-              alert('❌ ' + (e?.response?.data?.message || 'Failed to cancel'));
-            }
           }}
         />
       </div>

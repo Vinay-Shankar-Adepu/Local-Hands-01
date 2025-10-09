@@ -15,43 +15,15 @@ const signToken = (user) =>
 // 🔹 Register with email/password
 export const register = async (req, res) => {
   try {
-    const { name, email, password, phone, role } = req.body;
+    const { name, email, password, phone } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ message: "Missing fields" });
-    if ((process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID)) {
-      console.log('[register:debug] incoming email raw=%s (contains ProviderA? %s)', email, /ProviderA/.test(email));
-    }
 
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: "Email already in use" });
 
     const hash = await bcrypt.hash(password, 10);
-    // Allow direct role assignment only for whitelisted roles (helps automated tests)
-    let assignedRole = null;
-    if (role && ["customer","provider","admin"].includes(role)) {
-      assignedRole = role;
-    }
-    const baseDoc = { name, email, password: hash, phone, role: assignedRole };
-    // In test mode, auto-mark providers available to simplify deterministic offer tests
-    if ((process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) && assignedRole === 'provider') {
-      if(process.env.STRICT_TEST_LIVE_ENFORCE === '1') {
-        // Do not auto-mark available in strict live enforcement tests
-      } else {
-        baseDoc.isAvailable = true;
-      }
-    }
-    let user = await User.create(baseDoc);
-    if ((process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID)) {
-      console.log('[register:debug] stored email=%s (post-create)', user.email);
-    }
-    // Defensive: ensure role persisted if provided
-    if (assignedRole && user.role !== assignedRole) {
-      await User.findByIdAndUpdate(user._id, { role: assignedRole });
-      user = await User.findById(user._id);
-    }
-    if (assignedRole) {
-      console.log('[register] created user %s with role=%s', user.email, user.role);
-    }
+    const user = await User.create({ name, email, password: hash, phone });
 
     const token = signToken(user);
     res.json({
@@ -60,7 +32,7 @@ export const register = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-  role: user.role,
+        role: user.role,
         verified: user.verified,
         phone: user.phone || "",
         address: user.address || "",
@@ -199,17 +171,6 @@ export const me = async (req, res) => {
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
-};
-
-// 🔹 Logout (stateless JWT) – client discards token; we also auto set provider offline
-export const logout = async (req, res) => {
-  try {
-    const user = await User.findById(req.userId).select('role isAvailable');
-    if(user && user.role === 'provider' && user.isAvailable){
-      await User.findByIdAndUpdate(user._id, { isAvailable: false });
-    }
-    res.json({ message: 'Logged out' });
-  } catch(e){ res.status(500).json({ message: e.message }); }
 };
 
 // 🔹 Change Password

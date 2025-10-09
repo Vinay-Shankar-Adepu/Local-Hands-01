@@ -14,13 +14,5 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 	console.log(`[startup] MAIL_PASS present=${raw ? 'yes' : 'no'} length=${raw.trim().length}`);
 })();
 import app from './app.js';
-import { createServer } from 'http';
-import { Server as SocketIOServer } from 'socket.io';
 const PORT = process.env.PORT || 5000;
-const server = createServer(app);
-const io = new SocketIOServer(server, { cors: { origin: '*'} });
-app.set('io', io);
-io.on('connection', socket => {
-	socket.on('joinBooking', serviceId => { if(serviceId) socket.join(`svc:${serviceId}`); });
-});
-server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

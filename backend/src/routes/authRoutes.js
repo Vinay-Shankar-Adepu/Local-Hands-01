@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login, googleSignIn, setRole, me, changePassword, requestPasswordReset, verifyPasswordResetOtp, resetPasswordWithOtp, logout } from "../controllers/authController.js";
+import { register, login, googleSignIn, setRole, me, changePassword, requestPasswordReset, verifyPasswordResetOtp, resetPasswordWithOtp } from "../controllers/authController.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
 
 const router = Router();
@@ -13,6 +13,5 @@ router.post("/change-password", requireAuth, changePassword);
 router.post('/forgot-password/request', requestPasswordReset);
 router.post('/forgot-password/verify', verifyPasswordResetOtp);
 router.post('/forgot-password/reset', resetPasswordWithOtp);
-router.post('/logout', requireAuth, logout);
 
 export default router;

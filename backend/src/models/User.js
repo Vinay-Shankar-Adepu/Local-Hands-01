@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String }, // optional if Google auth only
     phone: { type: String },
     googleId: { type: String },
@@ -22,14 +22,6 @@ const userSchema = new mongoose.Schema(
     rating: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
     completedJobs: { type: Number, default: 0 },
-    // Last completed service geo reference (fallback base when not live)
-    lastServiceLocation: {
-      type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], default: [0,0] }
-    },
-    // Cancellation metrics
-    customerCancellations: { type: Number, default: 0 },
-    providerCancellations: { type: Number, default: 0 },
     // Customer specific
     address: { type: String },
     preciseAddress: { type: String }, // For remote/rural locations with detailed directions

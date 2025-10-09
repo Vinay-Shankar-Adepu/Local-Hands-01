@@ -57,27 +57,14 @@ router.post('/select-services', requireAuth, requireRole('provider'), async (req
         lockedPrice: true
       }));
     }
-    // Auto set availability ON in test or when feature flag enabled (helps automated tests and onboarding shortcut)
-    if ((process.env.NODE_ENV === 'test' || process.env.AUTO_GO_LIVE_ON_SERVICE_SELECTION === '1') && process.env.STRICT_TEST_LIVE_ENFORCE !== '1') {
-      await User.findByIdAndUpdate(req.userId, { isAvailable: true });
-    }
     res.status(201).json({ services: created });
   } catch(e){ res.status(500).json({ message: e.message }); }
 });
 
 // provider secured routes
 router.patch("/availability", requireAuth, requireRole("provider"), setAvailability);
-// Guard against undefined req.body when client sends an empty PATCH (supertest .send() with no payload)
-router.patch('/go-live', requireAuth, requireRole('provider'), (req,res)=>{ 
-  if(!req.body) req.body = {}; 
-  req.body.isAvailable = true; 
-  return setAvailability(req,res); 
-});
-router.patch('/go-offline', requireAuth, requireRole('provider'), (req,res)=>{ 
-  if(!req.body) req.body = {}; 
-  req.body.isAvailable = false; 
-  return setAvailability(req,res); 
-});
+router.patch('/go-live', requireAuth, requireRole('provider'), (req,res)=>{ req.body.isAvailable = true; return setAvailability(req,res); });
+router.patch('/go-offline', requireAuth, requireRole('provider'), (req,res)=>{ req.body.isAvailable = false; return setAvailability(req,res); });
 router.patch("/location", requireAuth, requireRole("provider"), updateLocation);
 router.post("/onboarding", requireAuth, requireRole("provider"), submitOnboarding);
 
