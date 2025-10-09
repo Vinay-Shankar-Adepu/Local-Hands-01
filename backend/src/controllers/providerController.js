@@ -2,10 +2,97 @@ import User from "../models/User.js";
 import Booking from "../models/Booking.js";
 import mongoose from 'mongoose';
 
-// Provider toggles availability (Go Live mode)
+// Provider toggle// Provider onboarding flags (mock; you'll wire to uploads later)
+export const submitOnboarding = async (req, res) => {
+  try {
+    const { documents = [], selfie = "", otpVerified = false } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { documents, selfie, otpVerified },
+      { new: true }
+    ).select("-password");
+    res.json({ user });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
+// ✅ NEW: Provider submits license for verification
+export const submitLicenseVerification = async (req, res) => {
+  try {
+    const { licenseImage, licenseType, licenseNumber } = req.body;
+    
+    if (!licenseImage) {
+      return res.status(400).json({ message: 'License image is required' });
+    }
+    
+    if (!['aadhar', 'pan', 'driving_license', 'other'].includes(licenseType)) {
+      return res.status(400).json({ message: 'Invalid license type' });
+    }
+    
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      {
+        licenseImage,
+        licenseType,
+        licenseNumber,
+        onboardingStatus: 'pending',
+        verificationSubmittedAt: new Date()
+      },
+      { new: true }
+    ).select('-password');
+    
+    // TODO: Create notification for admin
+    // await Notification.create({
+    //   user: 'admin_id',
+    //   type: 'provider_verification_pending',
+    //   message: `New provider ${user.name} submitted license for verification`,
+    //   relatedUser: user._id
+    // });
+    
+    res.json({ 
+      user,
+      message: 'License submitted successfully. Waiting for admin approval.' 
+    });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
+// ✅ NEW: Get provider's verification status
+export const getVerificationStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('onboardingStatus licenseImage licenseType verificationSubmittedAt rejectionReason');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({
+      status: user.onboardingStatus,
+      licenseImage: user.licenseImage,
+      licenseType: user.licenseType,
+      submittedAt: user.verificationSubmittedAt,
+      rejectionReason: user.rejectionReason
+    });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
 export const setAvailability = async (req, res) => {
   try {
     const { isAvailable, lng, lat } = req.body;
+    
+    // ✅ Check if provider is approved before going live
+    if (isAvailable) {
+      const provider = await User.findById(req.userId).select('onboardingStatus role');
+      
+      if (provider.role === 'provider' && provider.onboardingStatus !== 'approved') {
+        return res.status(403).json({
+          message: 'You need to be approved by admin to go live'
+        });
+      }
+    }
     
     // ✅ Check if provider has an active in_progress booking
     const activeBooking = await Booking.findOne({
@@ -136,17 +223,3 @@ export const nearbyProviders = async (req, res) => {
   }
 };
 
-// Provider onboarding flags (mock; you’ll wire to uploads later)
-export const submitOnboarding = async (req, res) => {
-  try {
-    const { documents = [], selfie = "", otpVerified = false } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.userId,
-      { documents, selfie, otpVerified },
-      { new: true }
-    ).select("-password");
-    res.json({ user });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
-  }
-};

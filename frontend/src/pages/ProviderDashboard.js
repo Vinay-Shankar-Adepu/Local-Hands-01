@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTheme } from 'next-themes';
+import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
-import { FiClock, FiZap, FiCheck, FiX, FiBriefcase } from 'react-icons/fi';
+import { FiClock, FiZap, FiCheck, FiX, FiBriefcase, FiShield } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import ServiceSelectionModal from '../components/ServiceSelectionModal';
 
@@ -14,6 +15,8 @@ export default function ProviderDashboard() {
   const { user, setAvailability } = useAuth();
   const [liveUpdating, setLiveUpdating] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const navigate = useNavigate();
 
   const fetchOffers = async () => {
     try {
@@ -95,7 +98,13 @@ export default function ProviderDashboard() {
                           await setAvailability(true, location);
                           alert('You are now LIVE with updated location!');
                         } catch(e) {
-                          alert(e?.response?.data?.message || 'Failed to go live');
+                          const errorData = e?.response?.data;
+                          if (e?.response?.status === 403) {
+                            // Show verification modal instead of alert
+                            setShowVerificationModal(true);
+                          } else {
+                            alert(errorData?.message || 'Failed to go live');
+                          }
                         } finally {
                           setLiveUpdating(false);
                         }
@@ -113,7 +122,13 @@ export default function ProviderDashboard() {
                     setLiveUpdating(false);
                   }
                 } catch(e){ 
-                  alert(e?.response?.data?.message || 'Failed to update'); 
+                  const errorData = e?.response?.data;
+                  if (e?.response?.status === 403) {
+                    // Show verification modal
+                    setShowVerificationModal(true);
+                  } else {
+                    alert(errorData?.message || 'Failed to update');
+                  }
                   setLiveUpdating(false);
                 }
               }}
@@ -187,6 +202,43 @@ export default function ProviderDashboard() {
           // Optionally refresh something
         }}
       />
+
+      {/* Verification Required Modal */}
+      {showVerificationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-center w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full mx-auto mb-4">
+              <FiShield className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+              Verification Required
+            </h2>
+            
+            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
+              You need to be approved by admin to go live. Please upload your license for verification.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowVerificationModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowVerificationModal(false);
+                  navigate('/provider/verification');
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Verify Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

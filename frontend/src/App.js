@@ -24,6 +24,8 @@ import RoleSelectPage from "./pages/RoleSelectPage";
 import CustomerHistory from "./pages/CustomerHistory";
 import ProviderHistory from "./pages/ProviderHistory";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminVerificationsPage from "./pages/AdminVerificationsPage";
+import ProviderVerificationPage from "./pages/ProviderVerificationPage";
 import WelcomePage from "./pages/WelcomePage";
 import ForgotPassword from "./pages/ForgotPassword";
 
@@ -171,6 +173,26 @@ export default function App() {
             }
           />
           <Route
+            path="/provider/dashboard"
+            element={
+              <ProtectedRoute>
+                <RoleGuard allow={["provider"]}>
+                  <ProviderHome />
+                </RoleGuard>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/provider/verification"
+            element={
+              <ProtectedRoute>
+                <RoleGuard allow={["provider"]}>
+                  <ProviderVerificationPage />
+                </RoleGuard>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/provider/history"
             element={
               <ProtectedRoute>
@@ -188,6 +210,16 @@ export default function App() {
               <ProtectedRoute>
                 <RoleGuard allow={["admin"]}>
                   <AdminDashboard />
+                </RoleGuard>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/verifications"
+            element={
+              <ProtectedRoute>
+                <RoleGuard allow={["admin"]}>
+                  <AdminVerificationsPage />
                 </RoleGuard>
               </ProtectedRoute>
             }

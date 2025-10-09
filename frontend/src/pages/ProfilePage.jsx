@@ -11,6 +11,7 @@ import {
   FiMaximize2,
   FiX,
   FiLock,
+  FiShield,
 } from "react-icons/fi";
 import { useToast } from "../components/Toast";
 import {
@@ -291,6 +292,109 @@ export default function ProfilePage() {
               >
                 {error ? <FiAlertCircle /> : <FiCheckCircle />}
                 {error || msg}
+              </div>
+            )}
+
+            {/* ✅ License Verification Section for Providers */}
+            {user?.role === 'provider' && (
+              <div className="mb-6 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl border border-indigo-200 dark:border-indigo-700">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <FiShield className="w-4 h-4" />
+                  License Verification Status
+                </h3>
+                
+                <div className="space-y-3">
+                  {/* Status Badge */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Status:</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      user.onboardingStatus === 'approved' 
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : user.onboardingStatus === 'rejected'
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                        : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                    }`}>
+                      {user.onboardingStatus === 'approved' ? '✓ Approved' 
+                        : user.onboardingStatus === 'rejected' ? '✗ Rejected'
+                        : '⏳ Pending Review'}
+                    </span>
+                  </div>
+
+                  {/* License Image */}
+                  {user.licenseImage && (
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Uploaded License:</p>
+                      <div className="relative group">
+                        <img 
+                          src={user.licenseImage} 
+                          alt="License Document"
+                          className="w-full max-w-md h-48 object-cover rounded-lg border-2 border-gray-300 dark:border-gray-600 cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-400 transition-all"
+                          onClick={() => window.open(user.licenseImage, '_blank')}
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-all flex items-center justify-center">
+                          <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/60 px-3 py-1 rounded-full transition-opacity">
+                            Click to view full size
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* License Details */}
+                  {user.licenseType && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-600 dark:text-gray-400">Type:</span>
+                      <span className="font-medium text-gray-900 dark:text-white capitalize">
+                        {user.licenseType.replace('_', ' ')}
+                      </span>
+                    </div>
+                  )}
+
+                  {user.licenseNumber && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-600 dark:text-gray-400">Number:</span>
+                      <span className="font-mono font-medium text-gray-900 dark:text-white">
+                        {user.licenseNumber}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Submission Date */}
+                  {user.verificationSubmittedAt && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-600 dark:text-gray-400">Submitted:</span>
+                      <span className="text-gray-900 dark:text-white">
+                        {new Date(user.verificationSubmittedAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Rejection Reason */}
+                  {user.onboardingStatus === 'rejected' && user.rejectionReason && (
+                    <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                      <p className="text-xs font-medium text-red-900 dark:text-red-400 mb-1">Rejection Reason:</p>
+                      <p className="text-xs text-red-700 dark:text-red-300">{user.rejectionReason}</p>
+                    </div>
+                  )}
+
+                  {/* Approval Date */}
+                  {user.onboardingStatus === 'approved' && user.verificationReviewedAt && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-600 dark:text-gray-400">Approved on:</span>
+                      <span className="text-gray-900 dark:text-white">
+                        {new Date(user.verificationReviewedAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

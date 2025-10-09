@@ -2,6 +2,15 @@ import { Router } from 'express';
 import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
 import Category from '../models/Category.js';
 import ServiceTemplate from '../models/ServiceTemplate.js';
+import {
+  getPendingVerifications,
+  getApprovedProviders,
+  getRejectedProviders,
+  getProviderVerificationDetails,
+  approveProvider,
+  rejectProvider,
+  getVerificationStats
+} from '../controllers/adminController.js';
 
 const router = Router();
 
@@ -38,5 +47,14 @@ router.patch('/templates/:id', async (req,res)=>{
 	} catch(e){ res.status(500).json({ message: e.message }); }
 });
 router.delete('/templates/:id', async (req,res)=>{ try { const { id } = req.params; await ServiceTemplate.findByIdAndDelete(id); res.json({ success: true }); } catch(e){ res.status(500).json({ message: e.message }); }});
+
+// ✅ NEW: Provider verification routes
+router.get('/verifications/pending', getPendingVerifications);
+router.get('/verifications/approved', getApprovedProviders);
+router.get('/verifications/rejected', getRejectedProviders);
+router.get('/verifications/stats', getVerificationStats);
+router.get('/verifications/:providerId', getProviderVerificationDetails);
+router.post('/verifications/:providerId/approve', approveProvider);
+router.post('/verifications/:providerId/reject', rejectProvider);
 
 export default router;

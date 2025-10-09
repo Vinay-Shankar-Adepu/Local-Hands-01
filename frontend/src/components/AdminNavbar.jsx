@@ -11,6 +11,7 @@ import {
   FiHome,
   FiBarChart2,
   FiUsers,
+  FiCheckCircle,
 } from "react-icons/fi";
 
 export default function AdminNavbar() {
@@ -45,6 +46,7 @@ export default function AdminNavbar() {
 
   const navItems = [
     { name: "Dashboard", path: "/admin", icon: FiHome },
+    { name: "Verifications", path: "/admin/verifications", icon: FiCheckCircle },
     { name: "Manage Providers", path: "/admin/providers", icon: FiUsers },
     { name: "Analytics", path: "/admin/analytics", icon: FiBarChart2 },
     { name: "Settings", path: "/admin/settings", icon: FiSettings },

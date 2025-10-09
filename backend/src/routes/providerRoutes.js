@@ -10,7 +10,9 @@ import {
   nearbyProviders,
   setAvailability,
   updateLocation,
-  submitOnboarding
+  submitOnboarding,
+  submitLicenseVerification,
+  getVerificationStatus
 } from "../controllers/providerController.js";
 
 const router = Router();
@@ -68,4 +70,9 @@ router.patch('/go-offline', requireAuth, requireRole('provider'), (req,res)=>{ r
 router.patch("/location", requireAuth, requireRole("provider"), updateLocation);
 router.post("/onboarding", requireAuth, requireRole("provider"), submitOnboarding);
 
+// ✅ NEW: License verification routes
+router.post("/submit-verification", requireAuth, requireRole("provider"), submitLicenseVerification);
+router.get("/verification-status", requireAuth, requireRole("provider"), getVerificationStatus);
+
 export default router;
+

@@ -24,7 +24,15 @@ const userSchema = new mongoose.Schema(
     documents: [{ type: String }],
     selfie: { type: String },
     otpVerified: { type: Boolean, default: false },
+    // Provider verification system
     onboardingStatus: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    licenseImage: { type: String }, // URL/path to uploaded license (Aadhar/PAN/DL)
+    licenseType: { type: String, enum: ["aadhar", "pan", "driving_license", "other"] },
+    licenseNumber: { type: String }, // Optional: provider can enter license number
+    verificationSubmittedAt: { type: Date }, // When provider submitted verification
+    verificationReviewedAt: { type: Date }, // When admin reviewed
+    verificationReviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Admin who reviewed
+    rejectionReason: { type: String }, // Why admin rejected (if rejected)
     rating: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
     completedJobs: { type: Number, default: 0 },

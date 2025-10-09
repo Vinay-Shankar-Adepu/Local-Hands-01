@@ -16,6 +16,7 @@ import ratingsRoutes from './routes/ratingsRoutes.js';
 import notificationsRoutes from './routes/notificationsRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import catalogRoutes from './routes/catalogRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 import Booking from './models/Booking.js';
 
 dotenv.config();
@@ -42,6 +43,7 @@ app.use('/api/ratings', ratingsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/catalog', catalogRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.get('/', (_req,res)=>res.send('🚀 LocalHands API (app export)'));
 
