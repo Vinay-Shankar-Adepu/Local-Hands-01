@@ -2,13 +2,41 @@ import User from "../models/User.js";
 import Booking from "../models/Booking.js";
 import mongoose from 'mongoose';
 
-// Provider toggles availability
+// Provider toggles availability (Go Live mode)
 export const setAvailability = async (req, res) => {
   try {
-    const { isAvailable } = req.body;
+    const { isAvailable, lng, lat } = req.body;
+    
+    // ✅ Check if provider has an active in_progress booking
+    const activeBooking = await Booking.findOne({
+      provider: req.userId,
+      status: 'in_progress'
+    });
+    
+    // ✅ Don't allow going live if there's an active service
+    if (isAvailable && activeBooking) {
+      return res.status(400).json({ 
+        message: 'Cannot go live while you have an active service in progress. Complete the current service first.',
+        activeBooking: activeBooking.bookingId
+      });
+    }
+    
+    const updateFields = { 
+      isAvailable: !!isAvailable,
+      isLiveTracking: !!isAvailable // Enable/disable live tracking based on availability
+    };
+    
+    // ✅ When toggling Go Live ON, update location if provided
+    if (isAvailable && lng !== undefined && lat !== undefined) {
+      if (typeof lng === "number" && typeof lat === "number") {
+        updateFields.location = { type: "Point", coordinates: [lng, lat] };
+        updateFields.lastLocationUpdate = new Date();
+      }
+    }
+    
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { isAvailable: !!isAvailable },
+      updateFields,
       { new: true }
     ).select("-password");
 
@@ -27,7 +55,7 @@ export const setAvailability = async (req, res) => {
             const np = await User.findById(nextId).select('isAvailable');
             if(np && np.isAvailable){
               b.offers.push({ provider: nextId, status: 'pending', offeredAt: new Date() });
-              b.providerResponseTimeout = new Date(Date.now() + 2*60*1000);
+              b.providerResponseTimeout = new Date(Date.now() + 10*1000); // 10 seconds
               break;
             }
           }
@@ -52,9 +80,29 @@ export const updateLocation = async (req, res) => {
     if (typeof lng !== "number" || typeof lat !== "number")
       return res.status(400).json({ message: "lng/lat required (numbers)" });
 
+    // ✅ Only update location if provider is in live tracking mode
+    const provider = await User.findById(req.userId).select('isLiveTracking isAvailable');
+    if (!provider) return res.status(404).json({ message: 'Provider not found' });
+    
+    // ✅ Check if provider has an active in_progress booking - if so, don't update location
+    const activeBooking = await Booking.findOne({
+      provider: req.userId,
+      status: 'in_progress'
+    });
+    
+    if (activeBooking) {
+      return res.status(400).json({ 
+        message: 'Location update paused during active service',
+        reason: 'Service in progress - location will update after completion'
+      });
+    }
+
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { location: { type: "Point", coordinates: [lng, lat] } },
+      { 
+        location: { type: "Point", coordinates: [lng, lat] },
+        lastLocationUpdate: new Date()
+      },
       { new: true }
     ).select("-password");
     res.json({ user });

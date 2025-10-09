@@ -75,9 +75,47 @@ export default function ProviderDashboard() {
               onClick={async ()=> {
                 try {
                   setLiveUpdating(true);
-                  await setAvailability(!user.isAvailable);
-                } catch(e){ alert(e?.response?.data?.message || 'Failed to update'); }
-                finally { setLiveUpdating(false); }
+                  
+                  // ✅ If turning ON Go Live, ask for current location first
+                  if (!user.isAvailable) {
+                    if (!navigator.geolocation) {
+                      alert('Geolocation is not supported by your browser');
+                      return;
+                    }
+                    
+                    // Get current location
+                    navigator.geolocation.getCurrentPosition(
+                      async (position) => {
+                        const location = {
+                          lng: position.coords.longitude,
+                          lat: position.coords.latitude
+                        };
+                        
+                        try {
+                          await setAvailability(true, location);
+                          alert('You are now LIVE with updated location!');
+                        } catch(e) {
+                          alert(e?.response?.data?.message || 'Failed to go live');
+                        } finally {
+                          setLiveUpdating(false);
+                        }
+                      },
+                      (error) => {
+                        alert('Unable to get your location. Please enable location services.');
+                        console.error('Geolocation error:', error);
+                        setLiveUpdating(false);
+                      },
+                      { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                  } else {
+                    // Turning OFF - no location needed
+                    await setAvailability(false);
+                    setLiveUpdating(false);
+                  }
+                } catch(e){ 
+                  alert(e?.response?.data?.message || 'Failed to update'); 
+                  setLiveUpdating(false);
+                }
               }}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${user?.isAvailable ? 'bg-green-500 hover:bg-green-600 text-white border-green-600 dark:border-green-500' : 'bg-amber-500/90 hover:bg-amber-500 text-white border-amber-600 dark:border-amber-500'} disabled:opacity-60 disabled:cursor-not-allowed`}
             >

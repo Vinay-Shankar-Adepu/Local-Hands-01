@@ -57,12 +57,62 @@ export default function HomePage() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  // Fetch services
+  // Static popular services with real provider images
+  const popularServices = [
+    {
+      _id: 'electronics-repair',
+      name: 'Electronics Repair',
+      category: '💻 Technology',
+      price: 90,
+      image: '/images/electronics-repair.jpg',
+      description: 'Laptop, Mobile & Device Repair'
+    },
+    {
+      _id: 'house-cleaning',
+      name: 'House Cleaning',
+      category: '🏠 Home Services',
+      price: 80,
+      image: '/images/house-cleaning.jpg',
+      description: 'Professional Home Cleaning'
+    },
+    {
+      _id: 'ac-repair',
+      name: 'AC Repair & Service',
+      category: '💻 Technology',
+      price: 300,
+      image: '/images/ac-repair.jpg',
+      description: 'AC Installation & Maintenance'
+    },
+    {
+      _id: 'cctv-installation',
+      name: 'CCTV Installation',
+      category: '💻 Technology',
+      price: 260,
+      image: '/images/cctv-installation.jpg',
+      description: 'Security Camera Setup'
+    },
+    {
+      _id: 'carpentry',
+      name: 'Carpentry',
+      category: '🏠 Home Services',
+      price: 130,
+      image: '/images/carpentry.jpg',
+      description: 'Furniture & Woodwork'
+    },
+    {
+      _id: 'electrical',
+      name: 'Electrical Services',
+      category: '🏠 Home Services',
+      price: 110,
+      image: '/images/electrical.jpg',
+      description: 'Wiring & Electrical Repairs'
+    }
+  ];
+
+  // Set static services and mark as loaded
   useEffect(() => {
-    API.get("/services")
-      .then((r) => setServices(r.data.services.slice(0, 6)))
-      .catch((e) => setError(e?.response?.data?.message || "Failed to load services"))
-      .finally(() => setLoading(false));
+    setServices(popularServices);
+    setLoading(false);
   }, []);
 
   // Parallax hero image
@@ -327,6 +377,7 @@ export default function HomePage() {
                   key={s._id}
                   service={{
                     ...s,
+                    duration: 'service',
                     image: s.image || `https://images.unsplash.com/photo-1558618047-3c8c76e34c92?w=400&h=240&fit=crop`,
                   }}
                   showBookButton={false}

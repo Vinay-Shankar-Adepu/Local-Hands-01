@@ -101,8 +101,16 @@ export const AuthProvider = ({ children }) => {
   const logout = () => clearSession();
 
   // 🔹 Provider availability toggle
-  const setAvailability = async (isAvailable) => {
-    const { data } = await API.patch("/providers/availability", { isAvailable });
+  const setAvailability = async (isAvailable, location = null) => {
+    const payload = { isAvailable };
+    
+    // ✅ If toggling ON and location provided, include it
+    if (isAvailable && location) {
+      payload.lng = location.lng;
+      payload.lat = location.lat;
+    }
+    
+    const { data } = await API.patch("/providers/availability", payload);
     const merged = { ...user, ...data.user };
     saveSession(token, merged);
     return merged;

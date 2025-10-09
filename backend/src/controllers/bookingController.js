@@ -38,7 +38,7 @@ export const createBooking = async (req, res) => {
 };
 
 // Multi-provider booking creation based on template (aggregated service selection)
-const OFFER_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+const OFFER_TIMEOUT_MS = 10 * 1000; // 10 seconds
 
 async function computeProviderExperience(providerId) {
   const user = await User.findById(providerId).select('completedJobs');
@@ -174,6 +174,13 @@ export const acceptOffer = async (req,res)=>{
     booking.providerResponseTimeout = undefined;
     booking.autoAssignMessage = undefined;
     await booking.save();
+    
+    // ✅ AUTO-PAUSE GO LIVE: Turn off provider's availability during service
+    await User.findByIdAndUpdate(req.userId, {
+      isAvailable: false,
+      isLiveTracking: false
+    });
+    
     res.json({ booking });
   } catch(e){ res.status(500).json({ message: e.message }); }
 };
@@ -319,6 +326,13 @@ export const acceptBooking = async (req, res) => {
       booking.providerResponseTimeout = undefined;
       booking.autoAssignMessage = undefined;
       await booking.save();
+      
+      // ✅ AUTO-PAUSE GO LIVE: Turn off provider's availability during service
+      await User.findByIdAndUpdate(req.userId, {
+        isAvailable: false,
+        isLiveTracking: false
+      });
+      
       return res.json({ booking, mode: 'multi', action: 'offer-accepted' });
     }
 
@@ -331,6 +345,13 @@ export const acceptBooking = async (req, res) => {
       booking.provider = provider._id;
       booking.acceptedAt = new Date();
       await booking.save();
+      
+      // ✅ AUTO-PAUSE GO LIVE: Turn off provider's availability during service
+      await User.findByIdAndUpdate(req.userId, {
+        isAvailable: false,
+        isLiveTracking: false
+      });
+      
       console.log('[service] Provider %s accepted request %s (now in-progress)', provider._id, booking._id);
       return res.json({ booking, mode: 'providerResponses', action: 'accepted' });
     }
@@ -343,6 +364,13 @@ export const acceptBooking = async (req, res) => {
     booking.provider = provider._id;
     booking.acceptedAt = new Date();
     await booking.save();
+    
+    // ✅ AUTO-PAUSE GO LIVE: Turn off provider's availability during service
+    await User.findByIdAndUpdate(req.userId, {
+      isAvailable: false,
+      isLiveTracking: false
+    });
+    
     res.json({ booking, mode: 'legacy' });
   } catch (e) {
     res.status(500).json({ message: e.message });
@@ -440,6 +468,16 @@ export const completeBooking = async (req, res) => {
     booking.completedAt = new Date();
     booking.reviewStatus = "provider_pending"; // Customer needs to review first
     await booking.save();
+    
+    // ✅ POST-SERVICE LOCATION UPDATE: Update provider's location to customer's booking location
+    if (booking.provider && booking.location) {
+      await User.findByIdAndUpdate(booking.provider, {
+        location: booking.location,
+        lastServiceLocation: booking.location,
+        lastServiceCompletedAt: new Date()
+      });
+    }
+    
     // increment provider completedJobs counter (denormalized experience metric)
     if(booking.provider){
       await User.findByIdAndUpdate(booking.provider, { $inc: { completedJobs: 1 } });
@@ -475,6 +513,16 @@ export const customerCompleteBooking = async (req, res) => {
     booking.completedAt = new Date();
     booking.reviewStatus = 'customer_pending'; // Provider needs to review first
     await booking.save();
+    
+    // ✅ POST-SERVICE LOCATION UPDATE: Update provider's location to customer's booking location
+    if (booking.provider && booking.location) {
+      await User.findByIdAndUpdate(booking.provider, {
+        location: booking.location,
+        lastServiceLocation: booking.location,
+        lastServiceCompletedAt: new Date()
+      });
+    }
+    
     if(booking.provider){
       await User.findByIdAndUpdate(booking.provider, { $inc: { completedJobs: 1 } });
     }

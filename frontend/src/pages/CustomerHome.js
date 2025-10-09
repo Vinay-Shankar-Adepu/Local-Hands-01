@@ -48,6 +48,7 @@ export default function CustomerHome() {
   const [location, setLocation] = useState({ lat: null, lng: null });
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("balanced"); // nearest | rating | balanced
   const [providerSelect, setProviderSelect] = useState({ open: false, aggregate: null });
   const [waitingBooking, setWaitingBooking] = useState(null); // bookingId while waiting for acceptance
 
@@ -84,18 +85,16 @@ export default function CustomerHome() {
     );
   }, []);
 
-  // ✅ Fetch services + sort by distance
+  // ✅ Fetch services + calculate distance
   useEffect(() => {
     API.get("/services")
       .then((res) => {
         let s = res.data.services || [];
         if (location.lat && location.lng) {
-          s = s
-            .map((srv) => ({
-              ...srv,
-              distance: getDistance(location.lat, location.lng, srv.lat, srv.lng),
-            }))
-            .sort((a, b) => (a.distance || 0) - (b.distance || 0));
+          s = s.map((srv) => ({
+            ...srv,
+            distance: getDistance(location.lat, location.lng, srv.lat, srv.lng),
+          }));
         }
         setServices(s);
       })
@@ -104,12 +103,44 @@ export default function CustomerHome() {
       )
       .finally(() => setLoading(false));
   }, [location]);
+  
+  // ✅ SORTING LOGIC: Sort services based on selected mode
+  const sortServices = (servicesList) => {
+    return servicesList.slice().sort((a, b) => {
+      const distA = a.distance || 999999;
+      const distB = b.distance || 999999;
+      const ratingA = a.provider?.rating || 0;
+      const ratingB = b.provider?.rating || 0;
+
+      if (sortBy === 'nearest') {
+        // Sort by ascending distance
+        return distA - distB;
+      } else if (sortBy === 'rating') {
+        // Sort by descending rating
+        if (ratingB !== ratingA) return ratingB - ratingA;
+        // Tiebreaker: nearest
+        return distA - distB;
+      } else { // balanced
+        // Balanced formula: (distance × 0.7) + ((5 - rating) × 0.3)
+        // Lower score is better (closer distance + higher rating)
+        const scoreA = (distA * 0.7) + ((5 - ratingA) * 0.3);
+        const scoreB = (distB * 0.7) + ((5 - ratingB) * 0.3);
+        return scoreA - scoreB;
+      }
+    });
+  };
+  
+  // Apply sorting to services
+  const sortedServices = useMemo(() => {
+    return sortServices(services);
+  }, [services, sortBy]);
 
 
   // Aggregate duplicate services (same template or name+category) across providers
   const aggregated = useMemo(() => {
     const map = new Map();
-    for (const srv of services) {
+    const sorted = sortServices(services); // Use sorted services
+    for (const srv of sorted) {
       const key = srv.template || `${srv.name}::${srv.category}`;
       if (!map.has(key)) {
         map.set(key, {
@@ -128,7 +159,7 @@ export default function CustomerHome() {
       }
     }
     return Array.from(map.values());
-  }, [services]);
+  }, [services, sortBy]);
 
   const filteredAggregated = useMemo(() => {
     return aggregated.filter(a => (activeCategory === 'all' || a.category === activeCategory) && (!searchTerm || a.name.toLowerCase().includes(searchTerm.toLowerCase())));
@@ -239,6 +270,35 @@ export default function CustomerHome() {
                   ));
                 })()}
               </div>
+              
+              {/* ✅ SORTING MODE BUTTONS */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-sm font-medium text-brand-gray-700 dark:text-gray-300">Sort by:</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSortBy('nearest')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-300 flex items-center gap-2 ${sortBy === 'nearest' ? 'bg-brand-primary text-white border-brand-primary shadow-lg dark:shadow-blue-500/50' : 'bg-white dark:bg-gray-800 text-brand-gray-700 dark:text-gray-300 border-brand-gray-200 dark:border-gray-700 hover:bg-brand-gray-50 dark:hover:bg-gray-700 dark:hover:border-blue-500/50'}`}
+                  >
+                    <FiMapPin className="w-4 h-4" />
+                    Nearest
+                  </button>
+                  <button
+                    onClick={() => setSortBy('rating')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-300 flex items-center gap-2 ${sortBy === 'rating' ? 'bg-brand-primary text-white border-brand-primary shadow-lg dark:shadow-blue-500/50' : 'bg-white dark:bg-gray-800 text-brand-gray-700 dark:text-gray-300 border-brand-gray-200 dark:border-gray-700 hover:bg-brand-gray-50 dark:hover:bg-gray-700 dark:hover:border-blue-500/50'}`}
+                  >
+                    <FiStar className="w-4 h-4" />
+                    Highest Rating
+                  </button>
+                  <button
+                    onClick={() => setSortBy('balanced')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-300 flex items-center gap-2 ${sortBy === 'balanced' ? 'bg-brand-primary text-white border-brand-primary shadow-lg dark:shadow-blue-500/50' : 'bg-white dark:bg-gray-800 text-brand-gray-700 dark:text-gray-300 border-brand-gray-200 dark:border-gray-700 hover:bg-brand-gray-50 dark:hover:bg-gray-700 dark:hover:border-blue-500/50'}`}
+                  >
+                    <FiZap className="w-4 h-4" />
+                    Balanced
+                  </button>
+                </div>
+              </div>
+              
               <div className="flex items-center gap-3 flex-wrap">
                 <input
                   type="text"
@@ -277,7 +337,7 @@ export default function CustomerHome() {
 
           {!loading && !error && (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services
+              {sortedServices
                 .filter(s => {
                   const matchesCategory = activeCategory === 'all' || s.category === activeCategory;
                   const matchesSearch = !searchTerm || s.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -294,7 +354,7 @@ export default function CustomerHome() {
             </div>
           )}
 
-          {!loading && !error && services.filter(s => {
+          {!loading && !error && sortedServices.filter(s => {
             const matchesCategory = activeCategory === 'all' || s.category === activeCategory;
             const matchesSearch = !searchTerm || s.name.toLowerCase().includes(searchTerm.toLowerCase());
             return matchesCategory && matchesSearch;
@@ -315,14 +375,7 @@ export default function CustomerHome() {
                   <button onClick={()=>setProviderSelect({ open:false, aggregate:null })} className="p-2 hover:bg-brand-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-300"><FiX className="w-5 h-5 dark:text-gray-300" /></button>
                 </div>
                 <div className="space-y-3 max-h-80 overflow-auto pr-2">
-                  {providerSelect.aggregate.services
-                    .slice()
-                    .sort((a,b)=>{
-                      const da = a.distance ?? 999999;
-                      const db = b.distance ?? 999999;
-                      if(da!==db) return da-db;
-                      return (b.rating||0) - (a.rating||0);
-                    })
+                  {sortServices(providerSelect.aggregate.services)
                     .map(srv => (
                       <div key={srv._id} className="p-3 border rounded-lg flex items-center justify-between gap-3 text-sm bg-white dark:bg-gray-700/60 border-brand-gray-200 dark:border-gray-600 hover:border-brand-primary dark:hover:border-blue-500 transition-all duration-300 dark:shadow-dark-card dark:hover:shadow-dark-glow">
                         <div className="flex-1">

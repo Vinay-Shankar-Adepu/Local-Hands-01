@@ -7,7 +7,7 @@ export default function ServiceCard({
   showBookButton = true,
   variant = "default",
 }) {
-  const { name, category, price, duration, provider, rating, image, distanceKm } = service;
+  const { name, category, price, duration, provider, rating, image, distanceKm, description } = service;
 
   if (variant === "compact") {
     return (
@@ -73,46 +73,47 @@ export default function ServiceCard({
 
       {/* Content */}
       <div className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-brand-gray-900 dark:text-white text-lg mb-1 group-hover:text-brand-primary dark:group-hover:text-blue-400 transition-colors duration-300">
-              {name}
-            </h3>
-
-            {provider && (
-              <div className="flex items-center text-sm text-brand-gray-500 dark:text-gray-400 mb-2">
-                <FiUser className="w-4 h-4 mr-1" />
-                <span>{provider.name}</span>
-                {provider.rating && (
-                  <>
-                    <span className="mx-2">•</span>
-                    <FiStar className="w-3 h-3 mr-1 text-warning dark:text-yellow-400" />
-                    <span>{provider.rating.toFixed(1)}</span>
-                  </>
-                )}
-              </div>
-            )}
-
-            {duration && (
-              <div className="flex items-center text-sm text-brand-gray-500 dark:text-gray-400">
-                <FiClock className="w-4 h-4 mr-1" />
-                <span>{duration}</span>
-              </div>
-            )}
-
-            {distanceKm && (
-              <div className="flex items-center text-sm text-brand-gray-500 dark:text-gray-400 mt-1">
-                <FiMapPin className="w-4 h-4 mr-1" />
-                {distanceKm.toFixed(1)} km away
-              </div>
-            )}
-          </div>
-
-          <div className="text-right">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-brand-gray-900 dark:text-white text-lg group-hover:text-brand-primary dark:group-hover:text-blue-400 transition-colors duration-300 flex-1 pr-3">
+            {name}
+          </h3>
+          <div className="text-right flex-shrink-0">
             <p className="font-bold text-brand-primary dark:text-blue-400 text-2xl">₹{price}</p>
-            {duration && <p className="text-sm text-brand-gray-400 dark:text-gray-500">per {duration}</p>}
+            {duration && <p className="text-sm text-brand-gray-400 dark:text-gray-500 whitespace-nowrap">{duration === 'service' ? 'Starting from' : `per ${duration}`}</p>}
           </div>
         </div>
+
+        {description && (
+          <p className="text-sm text-brand-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{description}</p>
+        )}
+
+        {provider && (
+          <div className="flex items-center text-sm text-brand-gray-500 dark:text-gray-400 mb-2">
+            <FiUser className="w-4 h-4 mr-1" />
+            <span>{provider.name}</span>
+            {provider.rating && (
+              <>
+                <span className="mx-2">•</span>
+                <FiStar className="w-3 h-3 mr-1 text-warning dark:text-yellow-400" />
+                <span>{provider.rating.toFixed(1)}</span>
+              </>
+            )}
+          </div>
+        )}
+
+        {duration && duration !== 'service' && (
+          <div className="flex items-center text-sm text-brand-gray-500 dark:text-gray-400 mb-1">
+            <FiClock className="w-4 h-4 mr-1" />
+            <span>{duration}</span>
+          </div>
+        )}
+
+        {distanceKm && (
+          <div className="flex items-center text-sm text-brand-gray-500 dark:text-gray-400">
+            <FiMapPin className="w-4 h-4 mr-1" />
+            {distanceKm.toFixed(1)} km away
+          </div>
+        )}
 
         {showBookButton && onBook && (
           <button

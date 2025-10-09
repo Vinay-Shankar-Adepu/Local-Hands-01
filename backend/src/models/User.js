@@ -15,6 +15,12 @@ const userSchema = new mongoose.Schema(
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: { type: [Number], default: [0, 0] } // [lng, lat]
     },
+    lastServiceLocation: {
+      type: { type: String, enum: ["Point"] },
+      coordinates: { type: [Number] } // Last completed service location
+    },
+    lastServiceCompletedAt: { type: Date }, // Timestamp of last completed service
+    isLiveTracking: { type: Boolean, default: false }, // Whether actively sending live location updates
     documents: [{ type: String }],
     selfie: { type: String },
     otpVerified: { type: Boolean, default: false },
