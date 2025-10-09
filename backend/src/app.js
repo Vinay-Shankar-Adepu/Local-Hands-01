@@ -7,6 +7,7 @@ import { ensureAdmin } from './utils/bootstrapAdmin.js';
 import { ensureCatalog } from './utils/bootstrapCatalog.js';
 
 import authRoutes from './routes/authRoutes.js';
+import mobileAuthRoutes from './routes/mobileAuthRoutes.js';
 import providerRoutes from './routes/providerRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import serviceRoutes from './routes/serviceRoutes.js';
@@ -34,6 +35,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/mobile-auth', mobileAuthRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/services', serviceRoutes);

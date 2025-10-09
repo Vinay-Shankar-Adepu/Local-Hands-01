@@ -100,6 +100,13 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => clearSession();
 
+  // 🔹 WhatsApp login handler
+  const loginWithWhatsApp = (responseData) => {
+    // Response structure: { token, user, needsRoleSelection }
+    saveSession(responseData.token, responseData.user);
+    return responseData;
+  };
+
   // 🔹 Provider availability toggle
   const setAvailability = async (isAvailable, location = null) => {
     const payload = { isAvailable };
@@ -131,6 +138,7 @@ export const AuthProvider = ({ children }) => {
       register,
       login,
       loginWithGoogleIdToken,
+      loginWithWhatsApp,
       setRole,
       logout,
       setAvailability,

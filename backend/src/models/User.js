@@ -3,9 +3,9 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
+    email: { type: String, unique: true, sparse: true, lowercase: true }, // sparse allows multiple null values
     password: { type: String }, // optional if Google auth only
-    phone: { type: String },
+    phone: { type: String, unique: true, sparse: true }, // sparse allows multiple null values
     googleId: { type: String },
     role: { type: String, enum: ["customer", "provider", "admin", null], default: null },
     verified: { type: Boolean, default: false },
@@ -42,6 +42,9 @@ const userSchema = new mongoose.Schema(
     // Password reset (OTP via email)
     passwordResetOtp: { type: String },
     passwordResetExpires: { type: Date },
+    // Phone OTP authentication (WhatsApp)
+    phoneOtp: { type: String }, // OTP sent via WhatsApp
+    phoneOtpExpires: { type: Date }, // OTP expiration time
   },
   { timestamps: true }
 );
