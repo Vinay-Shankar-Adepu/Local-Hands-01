@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import API from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   FiUser,
   FiPhone,
@@ -12,6 +13,7 @@ import {
   FiX,
   FiLock,
   FiShield,
+  FiUpload,
 } from "react-icons/fi";
 import { useToast } from "../components/Toast";
 import {
@@ -102,6 +104,7 @@ export default function ProfilePage() {
   const { user, saveSession } = useAuth();
   const { theme } = useTheme();
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     name: user?.name || "",
@@ -149,6 +152,10 @@ export default function ProfilePage() {
           // Default fallback (KMIT coordinates)
           setPosition([17.4033, 78.4897]);
         }
+        
+        // ✅ Update AuthContext with fresh user data (especially onboardingStatus)
+        // This ensures license verification status is always up-to-date
+        saveSession(null, { ...user, ...u });
       } catch (e) {
         setError("Failed to load profile");
       } finally {
@@ -305,20 +312,54 @@ export default function ProfilePage() {
                 
                 <div className="space-y-3">
                   {/* Status Badge */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Status:</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      user.onboardingStatus === 'approved' 
-                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                        : user.onboardingStatus === 'rejected'
-                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                        : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                    }`}>
-                      {user.onboardingStatus === 'approved' ? '✓ Approved' 
-                        : user.onboardingStatus === 'rejected' ? '✗ Rejected'
-                        : '⏳ Pending Review'}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Status:</span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        user.onboardingStatus === 'approved' 
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                          : user.onboardingStatus === 'rejected'
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          : user.onboardingStatus === 'pending'
+                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
+                      }`}>
+                        {user.onboardingStatus === 'approved' ? '✓ Approved' 
+                          : user.onboardingStatus === 'rejected' ? '✗ Rejected'
+                          : user.onboardingStatus === 'pending' ? '⏳ Pending Review'
+                          : '⚠️ Not Submitted'}
+                      </span>
+                    </div>
+                    
+                    {/* Upload/Manage License Button */}
+                    {(user.onboardingStatus !== 'approved' && user.onboardingStatus !== 'pending') && (
+                      <button
+                        onClick={() => navigate('/provider/verification')}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+                      >
+                        <FiUpload className="w-3.5 h-3.5" />
+                        {user.onboardingStatus === 'rejected' ? 'Resubmit' : 'Upload License'}
+                      </button>
+                    )}
+                    
+                    {user.onboardingStatus === 'pending' && (
+                      <button
+                        onClick={() => navigate('/provider/verification')}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium rounded-lg transition-colors"
+                      >
+                        View Details
+                      </button>
+                    )}
                   </div>
+
+                  {/* Not Submitted Message */}
+                  {!user.onboardingStatus || user.onboardingStatus === 'not_submitted' && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs text-blue-900 dark:text-blue-300">
+                        📋 You need to upload your government ID for verification before you can accept bookings and go live.
+                      </p>
+                    </div>
+                  )}
 
                   {/* License Image */}
                   {user.licenseImage && (

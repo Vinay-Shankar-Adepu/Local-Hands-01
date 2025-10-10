@@ -27,7 +27,7 @@ export const getApprovedProviders = async (req, res) => {
       role: 'provider',
       onboardingStatus: 'approved'
     })
-      .select('name email phone rating ratingCount completedJobs isAvailable createdAt verificationReviewedAt')
+      .select('name email phone licenseImage licenseType licenseNumber onboardingStatus rating ratingCount completedJobs isAvailable createdAt verificationReviewedAt verificationSubmittedAt')
       .sort('-verificationReviewedAt');
     
     res.json({

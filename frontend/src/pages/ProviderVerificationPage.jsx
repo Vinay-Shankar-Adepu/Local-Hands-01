@@ -3,14 +3,23 @@ import { useAuth } from '../context/AuthContext';
 import ProviderVerification from '../components/ProviderVerification';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
+import API from '../services/api';
 
 export default function ProviderVerificationPage() {
-  const { user } = useAuth();
+  const { user, saveSession } = useAuth();
   const navigate = useNavigate();
 
-  const handleStatusChange = (newStatus) => {
+  const handleStatusChange = async (newStatus) => {
     console.log('Verification status changed to:', newStatus);
-    // You can update global state or trigger notifications here
+    
+    // ✅ Refresh user data from backend to update AuthContext
+    try {
+      const { data } = await API.get('/users/me');
+      saveSession(null, { ...user, ...data.user });
+      console.log('User data refreshed in AuthContext');
+    } catch (err) {
+      console.error('Failed to refresh user data:', err);
+    }
   };
 
   return (

@@ -21,7 +21,14 @@ export default function ProviderVerification({ user, onStatusChange }) {
     try {
       const { data } = await API.get('/providers/verification-status');
       setVerificationData(data);
-      setStatus(data.onboardingStatus || 'not_submitted');
+      const newStatus = data.onboardingStatus || 'not_submitted';
+      
+      // ✅ If status changed, notify parent to refresh AuthContext
+      if (newStatus !== status && onStatusChange) {
+        onStatusChange(newStatus);
+      }
+      
+      setStatus(newStatus);
       if (data.licenseImage) {
         setLicenseImage(data.licenseImage);
         setImagePreview(data.licenseImage);
@@ -196,6 +203,15 @@ export default function ProviderVerification({ user, onStatusChange }) {
               Your license is under review. Admin will approve it shortly.
             </p>
             <VerificationStatusBadge status="pending" size="lg" />
+            
+            {/* Refresh Status Button */}
+            <button
+              onClick={fetchStatus}
+              disabled={uploading}
+              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {uploading ? 'Checking...' : 'Check Status'}
+            </button>
             
             {verificationData?.verificationSubmittedAt && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
