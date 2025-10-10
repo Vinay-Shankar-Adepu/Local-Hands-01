@@ -30,8 +30,9 @@ export default function LoginPage() {
   const onGoogleSuccess = async (response) => {
     try {
       const idToken = response?.credential;
-      await loginWithGoogleIdToken(idToken);
-      nav("/welcome"); // ✅ Google login also goes to welcome
+      const u = await loginWithGoogleIdToken(idToken);
+      // ✅ Use redirectAfterAuth to check if user has role
+      redirectAfterAuth(u, nav);
     } catch {
       setErr("Google sign-in failed. Please try again.");
     }

@@ -9,12 +9,24 @@ export default function WelcomePage() {
   const navigate = useNavigate();
   const [showToast, setShowToast] = React.useState(true);
 
+  // ✅ Redirect to role selection if user doesn't have a role
+  useEffect(() => {
+    if (user && !user.role) {
+      navigate("/choose-role", { replace: true });
+    }
+  }, [user, navigate]);
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <p className="text-gray-600 text-lg">You are not logged in.</p>
       </div>
     );
+  }
+
+  // ✅ Don't render if user has no role (will redirect)
+  if (!user.role) {
+    return null;
   }
 
   const roleIcons = {
