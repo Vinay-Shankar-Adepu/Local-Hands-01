@@ -6,12 +6,26 @@ const bookingSchema = new mongoose.Schema(
     bookingId: { type: String, required: true, unique: true },
 
     // Participants
-    customer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    provider: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // filled after provider accepts
+    customer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    provider: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    }, // filled after provider accepts
 
     // Services
-    service: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
-    serviceTemplate: { type: mongoose.Schema.Types.ObjectId, ref: "ServiceTemplate" },
+    service: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Service",
+      required: true,
+    },
+    serviceTemplate: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ServiceTemplate",
+    },
 
     // Scheduling
     scheduledAt: { type: Date },
@@ -23,14 +37,29 @@ const bookingSchema = new mongoose.Schema(
     providerReviewed: { type: Boolean, default: false },
     reviewStatus: {
       type: String,
-      enum: ["none", "customer_pending", "provider_pending", "both_pending", "fully_closed"],
+      enum: [
+        "none",
+        "customer_pending",
+        "provider_pending",
+        "both_pending",
+        "fully_closed",
+      ],
       default: "none",
     },
 
     // Job state
     status: {
       type: String,
-      enum: ["requested", "accepted", "in_progress", "rejected", "completed", "cancelled"],
+      enum: [
+        "requested",
+        "accepted",
+        "in_progress",
+        "completed_by_provider",
+        "paid",
+        "completed",
+        "rejected",
+        "cancelled",
+      ],
       default: "requested",
     },
 
@@ -41,43 +70,67 @@ const bookingSchema = new mongoose.Schema(
       default: "pending",
     },
 
-    // Where the customer requested the service
-    location: {
-      type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], default: [0, 0] }, // [lng, lat]
-    },
+    // -------------------------
+    // 🧾 Billing & Payment Logic
+    // -------------------------
 
-    // 💡 NEW: Live tracking info (provider’s live movement)
-    providerLocation: {
-      type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], default: [0, 0] }, // provider’s current coords
-    },
-    providerLastUpdate: { type: Date }, // last update timestamp
-    distanceFromCustomer: { type: Number, default: 0 }, // dynamically updated in km
+    basePrice: { type: Number, default: 0 },
+    extraCharges: { type: Number, default: 0 },
+    billAmount: { type: Number, default: 0 },
 
-    // Payment
     paymentStatus: {
       type: String,
       enum: ["pending", "paid", "failed"],
       default: "pending",
     },
+    paymentMethod: {
+      type: String,
+      enum: ["razorpay", "cash", "none"],
+      default: "none",
+    },
+    paymentId: { type: String }, // Razorpay payment_id or "CASH-xxxx"
+    paymentVerifiedAt: { type: Date },
+    markedCompleteAt: { type: Date }, // when provider marks complete
 
-    // Time stamps for tracking workflow
+    // -------------------------
+    // 🌍 Location & Tracking
+    // -------------------------
+
+    location: {
+      type: { type: String, enum: ["Point"], default: "Point" },
+      coordinates: { type: [Number], default: [0, 0] }, // [lng, lat]
+    },
+
+    providerLocation: {
+      type: { type: String, enum: ["Point"], default: "Point" },
+      coordinates: { type: [Number], default: [0, 0] },
+    },
+    providerLastUpdate: { type: Date },
+    distanceFromCustomer: { type: Number, default: 0 }, // dynamically updated
+
+    // -------------------------
+    // 🕒 Workflow timestamps
+    // -------------------------
     acceptedAt: { type: Date },
     completedAt: { type: Date },
     cancelledAt: { type: Date },
     rejectionReason: { type: String },
 
-    // Provider response pipeline
+    // -------------------------
+    // ⚙️ Multi-provider pipeline
+    // -------------------------
     providerResponses: [
       {
         providerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        status: { type: String, enum: ["accepted", "rejected", "pending"], default: "pending" },
+        status: {
+          type: String,
+          enum: ["accepted", "rejected", "pending"],
+          default: "pending",
+        },
         respondedAt: { type: Date },
       },
     ],
 
-    // Multi-provider assignment flow
     pendingProviders: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     offers: [
       {
@@ -99,18 +152,18 @@ const bookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ Indexes for geospatial queries & performance
+// ✅ Indexes for geospatial queries
 bookingSchema.index({ location: "2dsphere" });
 bookingSchema.index({ providerLocation: "2dsphere" });
 
-// ✅ Utility Method: Update provider location & distance
+// ✅ Utility: Update provider position and distance
 bookingSchema.methods.updateProviderPosition = function (lng, lat, customerCoords) {
   this.providerLocation = { type: "Point", coordinates: [lng, lat] };
   this.providerLastUpdate = new Date();
 
   if (customerCoords && Array.isArray(customerCoords) && customerCoords.length === 2) {
     const [lng2, lat2] = customerCoords;
-    const R = 6371; // Earth radius in km
+    const R = 6371;
     const dLat = ((lat2 - lat) * Math.PI) / 180;
     const dLng = ((lng2 - lng) * Math.PI) / 180;
     const a =
@@ -121,7 +174,6 @@ bookingSchema.methods.updateProviderPosition = function (lng, lat, customerCoord
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     this.distanceFromCustomer = Number((R * c).toFixed(2));
   }
-
   return this;
 };
 

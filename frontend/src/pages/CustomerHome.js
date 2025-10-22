@@ -2,8 +2,10 @@ import React, { useEffect, useState, useMemo } from "react";
 import API from "../services/api";
 import EnhancedRatingModal from "../components/EnhancedRatingModal";
 import WaitingScreen from "../components/WaitingScreen";
+import PaymentModal from "../components/PaymentModal"; // 💳 Added
 import { RatingsAPI } from "../services/api.extras";
 import ServiceCard from "../components/ServiceCard";
+import { toast } from "react-toastify";
 import {
   FiAlertCircle,
   FiCalendar,
@@ -43,45 +45,60 @@ export default function CustomerHome() {
   const [myBookings, setMyBookings] = useState([]);
   const [providerProfile, setProviderProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [rateTarget, setRateTarget] = useState(null); // booking to rate
+  const [rateTarget, setRateTarget] = useState(null);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [location, setLocation] = useState({ lat: null, lng: null });
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
-  const [sortBy, setSortBy] = useState("balanced"); // nearest | rating | balanced
+  const [sortBy, setSortBy] = useState("balanced");
   const [providerSelect, setProviderSelect] = useState({ open: false, aggregate: null });
-  const [waitingBooking, setWaitingBooking] = useState(null); // bookingId while waiting for acceptance
+  const [waitingBooking, setWaitingBooking] = useState(null);
 
-  const loadBookings = () => {
-    API.get("/bookings/mine").then((r) => {
-      const bookings = r.data.bookings || [];
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+
+  const loadBookings = async () => {
+    try {
+      const res = await API.get("/bookings/mine");
+      const bookings = res.data.bookings || [];
       setMyBookings(bookings);
-      
-      // Auto-trigger rating modal for newly completed bookings
+
+      // 🔸 Auto trigger rating modal after service completion
       const needsCustomerReview = bookings.find(
-        b => b.status === "completed" && 
-        b.reviewStatus === "provider_pending" && 
-        !b.customerReviewed && 
-        !rateTarget
+        (b) =>
+          b.status === "completed" &&
+          b.reviewStatus === "provider_pending" &&
+          !b.customerReviewed &&
+          !rateTarget
       );
-      
       if (needsCustomerReview) {
-        // Auto-show rating modal for customer
         setTimeout(() => setRateTarget(needsCustomerReview), 500);
       }
-    });
+
+      // 💳 Auto trigger payment modal for unpaid bookings
+      const unpaid = bookings.find(
+        (b) => b.status === "completed" && b.paymentStatus === "pending"
+      );
+      if (unpaid && !showPaymentModal) {
+        setSelectedBooking(unpaid);
+        setShowPaymentModal(true);
+        toast.info(`Payment pending for booking #${unpaid.bookingId}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load bookings");
+    }
   };
 
   // ✅ Get user location
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      (pos) =>
         setLocation({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-        });
-      },
-      () => setLocation({ lat: 12.9716, lng: 77.5946 }) // fallback → Bangalore
+        }),
+      () => setLocation({ lat: 12.9716, lng: 77.5946 })
     );
   }, []);
 
@@ -166,33 +183,27 @@ export default function CustomerHome() {
   }, [aggregated, activeCategory, searchTerm]);
 
   // ✅ Poll booking status while waiting for provider acceptance
-  useEffect(() => {
-    if (!waitingBooking) return;
-    
-    const pollInterval = setInterval(async () => {
-      try {
-        const res = await API.get("/bookings/mine");
-        const booking = res.data.bookings?.find(b => b._id === waitingBooking);
-        
-        if (booking && booking.status !== "requested") {
-          // Provider has responded
-          setWaitingBooking(null);
-          loadBookings();
-          
-          if (booking.status === "in_progress" || booking.status === "accepted") {
-            // Show success message
-            alert("🎉 Your booking has been accepted! The provider will contact you soon.");
-          } else if (booking.status === "rejected") {
-            alert("❌ Unfortunately, this booking was declined. Please try another provider.");
+    useEffect(() => {
+        if (!waitingBooking) return;
+        const poll = setInterval(async () => {
+          try {
+            const res = await API.get("/bookings/mine");
+            const booking = res.data.bookings?.find((b) => b._id === waitingBooking);
+            if (booking && booking.status !== "requested") {
+              setWaitingBooking(null);
+              loadBookings();
+              if (booking.status === "accepted" || booking.status === "in_progress")
+                toast.success("🎉 Booking accepted by provider!");
+              else if (booking.status === "rejected")
+                toast.error("❌ Booking was declined.");
+            }
+          } catch (e) {
+            console.error(e);
           }
-        }
-      } catch (error) {
-        console.error("Error polling booking status:", error);
-      }
-    }, 3000); // Poll every 3 seconds
-    
-    return () => clearInterval(pollInterval);
-  }, [waitingBooking]);
+        }, 3000);
+        return () => clearInterval(poll);
+      }, [waitingBooking]);
+
 
   const openBook = (aggregate) => {
     if (!aggregate) return;
@@ -240,6 +251,20 @@ export default function CustomerHome() {
             Book services and manage your appointments
           </p>
         </div>
+
+        {/* 💳 Payment Modal */}
+        <PaymentModal
+          show={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          booking={selectedBooking}
+          onPaymentSuccess={() => {
+            toast.success("✅ Payment successful!");
+            setShowPaymentModal(false);
+            // Prompt rating immediately
+            if (selectedBooking?.provider) setRateTarget(selectedBooking);
+            loadBookings();
+          }}
+        />
 
         {/* Browse Services Section */}
         <section className="mb-12" data-services-section>
